@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Anmeldung - Schritt 2{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <h1>Verfügbare AGs</h1>
+    <p style="color: var(--text-muted); margin-bottom: 2rem;">Wähle deine Wunsch-AGs für Klasse {{ reg_data.klassenstufe
+        }}. Die Reihenfolge bestimmt deine Priorität.</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="grid">
+            {% for ag in ags %}
+            <div class="ag-card">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <h3>{{ ag.name }}</h3>
+                    <input type="checkbox" name="ags" value="{{ ag.id }}" style="width: 24px; height: 24px;">
+                </div>
+                <p style="font-size: 0.9rem; margin: 0.5rem 0;">{{ ag.beschreibung|truncatewords:20 }}</p>
+                <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    <span class="badge">Kostet: {{ ag.kosten }} €</span>
+                    <span class="badge">Leiter: {{ ag.verantwortlicher_name }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="card" style="grid-column: span 2; text-align: center;">
+                <p>Aktuell sind keine passenden AGs für deine Klassenstufe freigeschaltet.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if ags %}
+        <div style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: center;">
+            <a href="{% url 'register_schueler' %}" class="btn btn-outline">Zurück</a>
+            <button type="submit" class="btn btn-primary">Anmeldung absenden</button>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

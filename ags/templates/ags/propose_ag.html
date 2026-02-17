@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}AG Vorschlagen - AG-Portal{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <h1>Neue AG vorschlagen</h1>
+    <p style="color: var(--text-muted); margin-bottom: 2rem;">Fülle das Formular aus, um eine neue AG zur Prüfung
+        einzureichen.</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group" style="grid-column: span 2;">
+                <label>{{ form.name.label }}</label>
+                {{ form.name }}
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label>{{ form.beschreibung.label }}</label>
+                {{ form.beschreibung }}
+            </div>
+            <div class="form-group">
+                <label>{{ form.klassenstufe_min.label }} (von)</label>
+                {{ form.klassenstufe_min }}
+            </div>
+            <div class="form-group">
+                <label>{{ form.klassenstufe_max.label }} (bis)</label>
+                {{ form.klassenstufe_max }}
+            </div>
+            <div class="form-group">
+                <label>{{ form.kosten.label }} (€)</label>
+                {{ form.kosten }}
+            </div>
+            <div class="form-group">
+                <label>{{ form.kapazitaet.label }} (Plätze)</label>
+                {{ form.kapazitaet }}
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label>{{ form.termine.label }}</label>
+                {{ form.termine }}
+            </div>
+
+            <div style="grid-column: span 2; margin-top: 1rem;">
+                <h3>Kontaktperson</h3>
+            </div>
+
+            <div class="form-group">
+                <label>{{ form.verantwortlicher_name.label }}</label>
+                {{ form.verantwortlicher_name }}
+            </div>
+            <div class="form-group">
+                <label>{{ form.verantwortlicher_email.label }}</label>
+                {{ form.verantwortlicher_email }}
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label>{{ form.verantwortlicher_telefon.label }}</label>
+                {{ form.verantwortlicher_telefon }}
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
+            <button type="submit" class="btn btn-primary">AG einreichen</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

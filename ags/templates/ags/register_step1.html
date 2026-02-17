@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}Anmeldung - Schritt 1{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 0 auto;">
+    <h1>Anmeldung</h1>
+    <p style="color: var(--text-muted); margin-bottom: 2rem;">Schritt 1: Wer bist du?</p>
+
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form-group">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+            <div style="color: var(--error); font-size: 0.8rem;">{{ field.errors.0 }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Weiter zur AG-Auswahl</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
