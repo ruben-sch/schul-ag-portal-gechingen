@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=ag_portal
+      - POSTGRES_USER=ag_user
+      - POSTGRES_PASSWORD=ag_password
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ag_user -d ag_portal" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py migrate &&
+             python seed_data.py &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      - DATABASE_URL=postgres://ag_user:ag_password@db:5432/ag_portal
+      - SECRET_KEY=django-insecure-development-key
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

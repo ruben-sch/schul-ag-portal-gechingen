@@ -1,0 +1,8 @@
+<h1>Hallo {{ ag.verantwortlicher_name }},</h1>
+<p>Hier ist die aktuelle Teilnehmerliste für deine AG <strong>{{ ag.name }}</strong>:</p>
+<ul>
+    {% for p in participants %}
+    <li>{{ p.schueler.get_full_name }} ({{ p.schueler.email }})</li>
+    {% endfor %}
+</ul>
+<p>Das Losverfahren wurde erfolgreich abgeschlossen.</p>

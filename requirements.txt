@@ -1,0 +1,9 @@
+Django>=4.2,<5.0
+psycopg2-binary
+django-environ
+django-sesame
+gunicorn
+whitenoise
+python-dotenv
+requests
+beautifulsoup4

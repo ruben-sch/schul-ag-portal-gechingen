@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - AG-Portal{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 3rem;">
+    <h1>Willkommen, {{ user.first_name|default:user.email }}!</h1>
+    <p style="color: var(--text-muted);">Hier findest du deine aktuellen Anmeldungen und AGs.</p>
+</div>
+
+{% if anmeldungen %}
+<div class="card" style="margin-bottom: 3rem;">
+    <h2>Meine Anmeldungen</h2>
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 1px solid var(--border);">
+                    <th style="padding: 1rem 0;">Kind</th>
+                    <th style="padding: 1rem 0;">AG Name</th>
+                    <th style="padding: 1rem 0;">Priorität</th>
+                    <th style="padding: 1rem 0;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for anmeldung in anmeldungen %}
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 1rem 0;">{{ anmeldung.schueler.name }}</td>
+                    <td style="padding: 1rem 0;">{{ anmeldung.ag.name }}</td>
+                    <td style="padding: 1rem 0;">{{ anmeldung.prio }}</td>
+                    <td style="padding: 1rem 0;">
+                        {% if anmeldung.status == 'ACCEPTED' %}
+                        <span class="badge"
+                            style="background: rgba(34, 197, 94, 0.2); color: #4ade80;">Zugelassen</span>
+                        {% elif anmeldung.status == 'REJECTED' %}
+                        <span class="badge"
+                            style="background: rgba(239, 68, 68, 0.2); color: #f87171;">Warteliste</span>
+                        {% else %}
+                        <span class="badge">Wartend</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if managed_ags %}
+<div style="margin-top: 4rem;">
+    <h2>Deine AG-Verwaltung</h2>
+
+    {% for ag in managed_ags %}
+    <div class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--primary);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div>
+                <h3 style="margin: 0; font-size: 1.5rem;">{{ ag.name }}</h3>
+                <span style="font-size: 0.9rem; color: var(--text-muted);">Status:
+                    {% if ag.status == 'APPROVED' %}
+                    <span style="color: var(--success);">Genehmigt</span>
+                    {% else %}
+                    <span>In Prüfung</span>
+                    {% endif %}
+                </span>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1.2rem; font-weight: 700;">{{ ag.total_count }} Bewerber</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Kapazität: {{ ag.kapazitaet }} Plätze</div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 3rem;">
+            <!-- Teilnehmerliste -->
+            <div>
+                <h4 style="border-bottom: 2px solid var(--success); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                    Zugelassene Teilnehmer
+                </h4>
+                <ul style="list-style: none; padding: 0;">
+                    {% for row in ag.accepted_display %}
+                    <li style="padding: 0.8rem 0; border-bottom: 1px solid var(--border); font-size: 0.95rem;">
+                        {{ row }}
+                    </li>
+                    {% empty %}
+                    <li style="color: var(--text-muted);">Noch keine Teilnehmer zugelassen.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Warteliste -->
+            <div>
+                <h4 style="border-bottom: 2px solid var(--error); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                    Warteliste (Abgelehnt / Wartend)
+                </h4>
+                <ul style="list-style: none; padding: 0;">
+                    {% for row in ag.waiting_display %}
+                    <li style="padding: 0.8rem 0; border-bottom: 1px solid var(--border); font-size: 0.95rem;">
+                        {{ row }}
+                    </li>
+                    {% empty %}
+                    <li style="color: var(--text-muted);">Keine weiteren Bewerber auf der Warteliste.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if not anmeldungen and not managed_ags %}
+<div class="card" style="text-align: center;">
+    <p>Hier gibt es noch nichts zu sehen. Du hast dich noch für keine AG angemeldet oder eine AG eingereicht.</p>
+</div>
+{% endif %}
+
+<div style="margin-top: 2rem;">
+    <form method="post" action="{% url 'admin:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline">Abmelden</button>
+    </form>
+</div>
+{% endblock %}
