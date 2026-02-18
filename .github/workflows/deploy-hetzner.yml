@@ -7,6 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  # IMAGE_NAME must be lowercase
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
@@ -32,18 +33,28 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha
+            latest
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
+          # GHCR requires lowercase repository names
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -65,8 +76,10 @@ jobs:
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
             cd ~/schul-ag-portal/
-            export GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
-            export GITHUB_REPOSITORY_NAME=${{ github.event.repository.name }}
+            
+            # Lowercase the repository name for Docker pull
+            REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            
             # GH_TOKEN needed if pulling from private repo on GHCR
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
@@ -76,6 +89,9 @@ jobs:
               echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
               echo "ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}" >> .env
             fi
+            
+            # Update image in docker-compose.prod.yml to use lowercase
+            sed -i "s|image: ghcr.io/.*|image: ghcr.io/$REPO_LOWER:latest|g" docker-compose.prod.yml
             
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
