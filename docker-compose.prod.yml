@@ -17,7 +17,7 @@ services:
     restart: always
 
   web:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-ruben-sch}/${GITHUB_REPOSITORY_NAME:-schul-ag-portal-gechingen}:latest
+    image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:latest
     command: >
       sh -c "python manage.py migrate --noinput &&
              gunicorn config.wsgi:application --bind 0.0.0.0:8000"
