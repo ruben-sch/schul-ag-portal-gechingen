@@ -22,3 +22,5 @@ archives/*.json
 # IDEs
 .vscode/
 .idea/
+
+id_*

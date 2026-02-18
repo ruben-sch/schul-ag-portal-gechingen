@@ -57,62 +57,44 @@ Das System basiert auf **Django** und wird über **Docker** betrieben.
 
 ---
 
-## ☁️ Hosting auf Google Cloud Run
+## 🌐 Hosting auf Hetzner VPS
 
-Die App ist für das Hosting auf **Google Cloud Run** vorbereitet.
+Das Projekt ist für das Deployment auf einem Linux-Server (z.B. Hetzner VPS) vorbereitet. Die Auslieferung erfolgt via **Docker Compose** und **GitHub Actions**.
 
-### Voraussetzungen
-1. Ein Google Cloud Projekt mit aktivierter Abrechnung.
-2. Installiertes `gcloud` CLI.
-   - Projekt lokal setzen: `gcloud config set project schul-ag-portal-gechingen`
-3. Eine **Cloud SQL (PostgreSQL)** Instanz.
+### Voraussetzungen auf dem Server
+1. **Docker & Docker Compose** müssen installiert sein.
+2. Ein Ordner `~/schul-ag-portal/` sollte existieren.
+3. SSH-Zugriff via SSH-Key muss möglich sein.
    
-   Du kannst eine Instanz mit folgendem Befehl erstellen (Region Frankfurt, kostengünstige Konfiguration):
-   ```bash
-   # 1. Instanz erstellen (kostengünstigste 'db-f1-micro')
-   gcloud sql instances create schul-ag-db \
-       --project=schul-ag-portal-gechingen \
-       --database-version=POSTGRES_15 \
-       --tier=db-f1-micro \
-       --region=europe-west3 \
-       --storage-type=HDD
+#### 🔑 SSH-Key für Hetzner erstellen
+Um einen sicheren SSH-Key speziell für GitHub Actions zu erstellen, führe lokal folgende Befehle aus:
 
-   # 2. Datenbank innerhalb der Instanz erstellen
-   gcloud sql databases create ag_portal --instance=schul-ag-db --project=schul-ag-portal-gechingen
-
-   # 3. Datenbank-Benutzer erstellen
-   gcloud sql users create ag_user --instance=schul-ag-db --password=DEIN_PASSWORT --project=schul-ag-portal-gechingen
-   ```
-
-### Deployment
-Um die App zu deployen, führen Sie das bereitgestellte Skript aus:
 ```bash
-./deploy_gcp.sh
+# 1. Key generieren (ohne Passwort für CI/CD)
+ssh-keygen -t ed25519 -C "github-actions-deployment" -f ./id_ed25519_hetzner -N ""
+
+# 2. Public Key auf den Server kopieren (ersetze IP und User)
+ssh-copy-id -i ./id_ed25519_hetzner.pub root@123.123.123.123
 ```
 
-Das Skript nutzt **Google Cloud Build**, um das Image zu erstellen und direkt in **Cloud Run** (Region Frankfurt) zu veröffentlichen. Statische Dateien werden via **WhiteNoise** automatisch serviert.
+- Den Inhalt von `id_ed25519_hetzner` (privater Key) kopierst du in das GitHub Secret `HETZNER_SSH_KEY`.
+- Danach kannst du die Dateien `id_ed25519_hetzner` und `id_ed25519_hetzner.pub` lokal wieder löschen.
 
-### Wichtige Umgebungsvariablen in der Cloud:
-- `DATABASE_URL`: Verbindung zur Cloud SQL Instanz.
-- `SECRET_KEY`: Ein sicherer Produktions-Key. 
-  *(Generieren mit: `python3 -c 'import secrets; print(secrets.token_urlsafe(50))'`) *
-- `DEBUG`: Muss in der Cloud `False` sein.
+### Automatisches Deployment
+Sobald Änderungen in den `main` Branch gepusht werden, baut GitHub ein Image, lädt es in die **GitHub Container Registry (GHCR)** hoch und startet die Container auf dem Hetzner-Server neu.
 
-#### Format der `DATABASE_URL` für Cloud Run:
-`postgres://BENUTZER:PASSWORT@/DATENBANK?host=/cloudsql/PROJEKT_ID:REGION:INSTANZ_NAME`
+### Notwendige GitHub Secrets
+Damit das Deployment funktioniert, müssen im GitHub Repository unter `Settings -> Secrets and variables -> Actions` folgende Secrets hinterlegt werden:
 
-**Beispiel:**
-`postgres://ag_user:geheim@/ag_portal?host=/cloudsql/mein-projekt-123:europe-west3:schul-ag-db`
+| Secret Name | Beschreibung |
+| :--- | :--- |
+| `HETZNER_HOST` | IP-Adresse oder Domain des Servers |
+| `HETZNER_USER` | SSH-Benutzername (z.B. `root`) |
+| `HETZNER_SSH_KEY` | Privater SSH-Key für den Zugriff |
+| `SECRET_KEY` | Ein sicherer Django Secret Key |
+| `POSTGRES_PASSWORD` | Passwort für die PostgreSQL Datenbank |
+| `ALLOWED_HOSTS` | Die IP Ihres Servers (z.B. `123.123.123.123`) oder Domain. `*` ist auch möglich (weniger sicher). |
 
-#### So setzt du die Variablen:
-1. **Google Cloud Console:** Navigiere zu Cloud Run -> Dienst auswählen -> "Neue Revision bearbeiten" -> Tab "Variablen & Geheimnisse".
-2. **CLI (gcloud):** Sobald installiert, nutze `gcloud run services update schul-ag-portal --project=schul-ag-portal-gechingen --set-env-vars="KEY=VALUE,..."`
-
-#### 🛡️ Best Practice: Secret Manager
-Für sensible Daten (`DATABASE_URL`, `SECRET_KEY`) empfiehlt sich der **Google Cloud Secret Manager**:
-1. Erstelle ein Secret im [Secret Manager](https://console.cloud.google.com/security/secret-manager).
-2. Gewähre dem Cloud Run Service Account (meist `PROJECT_NUMBER-compute@developer.gserviceaccount.com`) die Rolle **"Secret Manager-Accessor"**.
-3. Binde das Secret in Cloud Run als Umgebungsvariable ein: "Neue Revision bearbeiten" -> "Variablen & Geheimnisse" -> "Referenz auf ein Secret hinzufügen".
 ---
 
 ## 🚀 CI/CD & GitHub Actions
@@ -120,14 +102,6 @@ Für sensible Daten (`DATABASE_URL`, `SECRET_KEY`) empfiehlt sich der **Google C
 Das Projekt verfügt über vollautomatisierte Workflows (`.github/workflows/`):
 
 1.  **Tests & Linting (`test.yml`)**: Läuft bei jedem Push/Pull Request. Führt Unittests, Flake8 (Syntax) und Bandit (Sicherheit) aus.
-2.  **Deployment (`deploy.yml`)**: Deployed die App automatisch auf Google Cloud Run, wenn auf `main` gepusht wird.
-3.  **CodeQL (`codeql.yml`)**: Erweitere Sicherheitsanalyse durch GitHub.
+2.  **Deployment (`deploy-hetzner.yml`)**: Deployed die App automatisch auf Ihren Hetzner VPS, wenn auf `main` gepusht wird.
+3.  **CodeQL**: Erweitere Sicherheitsanalyse durch GitHub.
 4.  **Dependabot**: Prüft wöchentlich auf veraltete Abhängigkeiten.
-
-### Notwendige GitHub Secrets
-Damit das Deployment funktioniert, müssen im GitHub Repository unter `Settings -> Secrets and variables -> Actions` folgende Secrets hinterlegt werden:
-
-| Secret Name | Wert |
-| :--- | :--- |
-| `GCP_PROJECT_ID` | Die ID Ihres Google Cloud Projekts |
-| `GCP_SA_KEY` | Der JSON-Key eines Service Accounts mit Cloud Run Admin & Storage Admin Rechten |
