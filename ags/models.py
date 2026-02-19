@@ -31,8 +31,8 @@ class AG(models.Model):
                 if '-' in datum and len(datum) == 10:
                     y, m, d = datum.split('-')
                     datum = f"{d}.{m}.{y}"
-            except:
-                pass
+            except Exception:
+                messages.error(request, "Fehler beim Parsen des Datums.")
             formatted.append(f"{datum} ({t.get('start', '')}-{t.get('ende', '')})")
         return ", ".join(formatted)
     mitzubringen = models.TextField(blank=True, help_text="Was müssen die Kinder mitbringen? (z.B. Sportzeug, Mäppchen)")
