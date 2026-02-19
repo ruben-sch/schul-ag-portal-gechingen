@@ -8,7 +8,11 @@
         <h1>Zuteilungs-Statistik</h1>
         <p style="color: var(--text-muted);">Auswertung des Losverfahrens und der aktuellen Auslastung.</p>
     </div>
-    <div style="display: flex; gap: 1rem;">
+    <div style="display: flex; gap: 1rem; align-items: center;">
+        <a href="{% url 'stats_export' %}" target="_blank" class="btn btn-outline" style="text-decoration: none;">📄
+            PDF/Druck</a>
+        <a href="{% url 'manual_intervention' %}" class="btn btn-outline" style="text-decoration: none;">✏️
+            Korrektur</a>
         <a href="/run-lottery-internal/" class="btn btn-primary">Losverfahren jetzt starten</a>
     </div>
 </div>

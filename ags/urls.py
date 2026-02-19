@@ -9,5 +9,7 @@ urlpatterns = [
     path('login/', views.request_magic_link, name='login'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('stats/', views.stats_dashboard, name='stats_dashboard'),
+    path('stats/export/', views.stats_export, name='stats_export'),
+    path('manual-intervention/', views.manual_intervention, name='manual_intervention'),
     path('run-lottery-internal/', views.run_lottery_view, name='run_lottery_internal'),
 ]

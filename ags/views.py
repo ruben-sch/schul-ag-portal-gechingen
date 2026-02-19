@@ -3,10 +3,14 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.urls import reverse
 from django.conf import settings
+from datetime import datetime
+from django.db.models import Count, Sum, Min, Max, Q
+from django.contrib.auth.decorators import login_required, user_passes_test
 from sesame.utils import get_query_string
 from .forms import AGProposalForm, SchuelerFirstStepForm, LoginForm
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig
 from .utils import run_lottery
+
 
 def landing(request):
     return render(request, 'ags/landing.html')
@@ -131,8 +135,6 @@ def request_magic_link(request):
         form = LoginForm()
     return render(request, 'ags/login.html', {'form': form})
 
-from django.contrib.auth.decorators import login_required
-
 @login_required
 def dashboard(request):
     # Determine if user is schueler and/or leiter
@@ -171,10 +173,6 @@ def dashboard(request):
         'managed_ags': managed_ags,
         'is_parent': profiles.exists()
     })
-
-from django.db.models import Count, Sum, Min, Max, Q
-from django.contrib.auth.decorators import user_passes_test
-from django.db import models
 
 @user_passes_test(lambda u: u.is_staff)
 def stats_dashboard(request):
@@ -244,3 +242,45 @@ def run_lottery_view(request):
     run_lottery()
     messages.success(request, "Das Losverfahren wurde erfolgreich durchgeführt.")
     return redirect('stats_dashboard')
+
+@user_passes_test(lambda u: u.is_staff)
+def manual_intervention(request):
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        anm_id = request.POST.get('anmeldung_id')
+        
+        try:
+            anm = Anmeldung.objects.get(id=anm_id)
+            if action == 'toggle_status':
+                anm.status = 'REJECTED' if anm.status == 'ACCEPTED' else 'ACCEPTED'
+                anm.save()
+                messages.success(request, f"Status für {anm.schueler.name} in {anm.ag.name} geändert.")
+        except Exception as e:
+            messages.error(request, f"Fehler: {str(e)}")
+        
+        return redirect('manual_intervention')
+
+    # Data for display
+    ags = AG.objects.filter(status='APPROVED').prefetch_related('anmeldungen__schueler')
+    students = SchuelerProfile.objects.prefetch_related('anmeldungen__ag').order_by('name')
+    
+    return render(request, 'ags/manual_intervention.html', {
+        'ags': ags,
+        'students': students
+    })
+
+@user_passes_test(lambda u: u.is_staff)
+def stats_export(request):
+    # This view is optimized for printing
+    ag_stats = AG.objects.filter(status='APPROVED').annotate(
+        reg_count=Count('anmeldungen'),
+        acc_count=Count('anmeldungen', filter=Q(anmeldungen__status='ACCEPTED'))
+    ).prefetch_related('anmeldungen__schueler')
+    
+    total_schueler = SchuelerProfile.objects.count()
+    
+    return render(request, 'ags/stats_export.html', {
+        'ag_stats': ag_stats,
+        'total_schueler': total_schueler,
+        'date': datetime.now()
+    })
