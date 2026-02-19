@@ -7,12 +7,23 @@ class AGProposalForm(forms.ModelForm):
         fields = [
             'name', 'beschreibung', 'kosten', 
             'klassenstufe_min', 'klassenstufe_max', 
-            'kapazitaet', 'termine',
+            'kapazitaet', 'termine', 'mitzubringen', 'hinweise',
             'verantwortlicher_name', 'verantwortlicher_email', 'verantwortlicher_telefon'
         ]
         widgets = {
             'beschreibung': forms.Textarea(attrs={'rows': 4}),
-            'termine': forms.Textarea(attrs={'rows': 2, 'placeholder': 'z.B. Mittwoch 14-15 Uhr'}),
+            'termine': forms.HiddenInput(),
+            'mitzubringen': forms.Textarea(attrs={'rows': 2, 'placeholder': 'z.B. Sportkleidung'}),
+            'hinweise': forms.Textarea(attrs={'rows': 2}),
+        }
+        labels = {
+            'verantwortlicher_name': 'Name',
+            'verantwortlicher_email': 'E-Mail',
+            'verantwortlicher_telefon': 'Telefon',
+            'kosten': 'Kosten (in €)',
+            'kapazitaet': 'Maximale Teilnehmerzahl',
+            'klassenstufe_min': 'Klassenstufe (min)',
+            'klassenstufe_max': 'Klassenstufe (max)',
         }
 
 class SchuelerFirstStepForm(forms.Form):

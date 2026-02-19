@@ -17,6 +17,7 @@
                 <tr style="text-align: left; border-bottom: 1px solid var(--border);">
                     <th style="padding: 1rem 0;">Kind</th>
                     <th style="padding: 1rem 0;">AG Name</th>
+                    <th style="padding: 1rem 0;">Wann</th>
                     <th style="padding: 1rem 0;">Priorität</th>
                     <th style="padding: 1rem 0;">Status</th>
                 </tr>
@@ -26,6 +27,7 @@
                 <tr style="border-bottom: 1px solid var(--border);">
                     <td style="padding: 1rem 0;">{{ anmeldung.schueler.name }}</td>
                     <td style="padding: 1rem 0;">{{ anmeldung.ag.name }}</td>
+                    <td style="padding: 1rem 0; font-size: 0.85rem;">{{ anmeldung.ag.get_termine_display }}</td>
                     <td style="padding: 1rem 0;">{{ anmeldung.prio }}</td>
                     <td style="padding: 1rem 0;">
                         {% if anmeldung.status == 'ACCEPTED' %}
@@ -55,6 +57,9 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <div>
                 <h3 style="margin: 0; font-size: 1.5rem;">{{ ag.name }}</h3>
+                <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.25rem;">
+                    <strong>Wann:</strong> {{ ag.get_termine_display }}
+                </div>
                 <span style="font-size: 0.9rem; color: var(--text-muted);">Status:
                     {% if ag.status == 'APPROVED' %}
                     <span style="color: var(--success);">Genehmigt</span>

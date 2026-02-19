@@ -191,17 +191,40 @@ def stats_dashboard(request):
         max_ags=Max('accepted_count')
     )
     
-    # Per AG stats
+    # Per AG stats with lists
     ag_stats = AG.objects.filter(status='APPROVED').annotate(
         reg_count=Count('anmeldungen'),
         acc_count=Count('anmeldungen', filter=Q(anmeldungen__status='ACCEPTED'))
-    )
+    ).prefetch_related('anmeldungen__schueler')
     
-    # Calculate percentages in python to avoid template tag line-break issues
+    # Per Student stats
+    search_query = request.GET.get('student_search', '')
+    min_ag_filter = request.GET.get('min_ags', '')
+    
+    students = SchuelerProfile.objects.annotate(
+        accepted_count=Count('anmeldungen', filter=Q(anmeldungen__status='ACCEPTED'))
+    ).prefetch_related('anmeldungen__ag').order_by('name')
+    
+    if search_query:
+        students = students.filter(name__icontains=search_query)
+    
+    if min_ag_filter:
+        try:
+            students = students.filter(accepted_count__gte=int(min_ag_filter))
+        except ValueError:
+            pass
+
+    # Calculate percentages and prepare display lists
     for ag in ag_stats:
         ag.reg_percent = int(ag.reg_count * 100 / ag.kapazitaet) if ag.kapazitaet > 0 else 0
         ag.acc_percent = int(ag.acc_count * 100 / ag.kapazitaet) if ag.kapazitaet > 0 else 0
         ag.reg_percent_clamped = min(ag.reg_percent, 100)
+        
+        # Sort and prepare participants
+        anm_list = list(ag.anmeldungen.all())
+        ag.accepted_list = [a for a in anm_list if a.status == 'ACCEPTED']
+        ag.waiting_list = [a for a in anm_list if a.status != 'ACCEPTED']
+        ag.waiting_list.sort(key=lambda x: x.prio)
 
     return render(request, 'ags/stats.html', {
         'total_schueler': total_schueler,
@@ -210,7 +233,10 @@ def stats_dashboard(request):
         'total_accepted': total_accepted,
         'min_ags': profile_stats['min_ags'] or 0,
         'max_ags': profile_stats['max_ags'] or 0,
-        'ag_stats': ag_stats
+        'ag_stats': ag_stats,
+        'students': students,
+        'search_query': search_query,
+        'min_ag_filter': min_ag_filter
     })
 
 @user_passes_test(lambda u: u.is_staff)

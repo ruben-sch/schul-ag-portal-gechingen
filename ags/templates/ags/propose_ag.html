@@ -5,8 +5,7 @@
 {% block content %}
 <div class="card" style="max-width: 800px; margin: 0 auto;">
     <h1>Neue AG vorschlagen</h1>
-    <p style="color: var(--text-muted); margin-bottom: 2rem;">Fülle das Formular aus, um eine neue AG zur Prüfung
-        einzureichen.</p>
+    <p style="color: var(--text-muted); margin-bottom: 2rem;">Fülle das Formular aus, um eine neue AG einzureichen.</p>
 
     <form method="post">
         {% csrf_token %}
@@ -20,24 +19,37 @@
                 {{ form.beschreibung }}
             </div>
             <div class="form-group">
-                <label>{{ form.klassenstufe_min.label }} (von)</label>
+                <label>{{ form.klassenstufe_min.label }}</label>
                 {{ form.klassenstufe_min }}
             </div>
             <div class="form-group">
-                <label>{{ form.klassenstufe_max.label }} (bis)</label>
+                <label>{{ form.klassenstufe_max.label }}</label>
                 {{ form.klassenstufe_max }}
             </div>
             <div class="form-group">
-                <label>{{ form.kosten.label }} (€)</label>
+                <label>{{ form.kosten.label }}</label>
                 {{ form.kosten }}
             </div>
             <div class="form-group">
-                <label>{{ form.kapazitaet.label }} (Plätze)</label>
+                <label>{{ form.kapazitaet.label }}</label>
                 {{ form.kapazitaet }}
             </div>
             <div class="form-group" style="grid-column: span 2;">
-                <label>{{ form.termine.label }}</label>
+                <label>Termine (Tag, Start- und Endzeit)</label>
+                <div id="termine-container">
+                    <!-- Dynamic entries will go here -->
+                </div>
+                <button type="button" class="btn btn-outline" id="add-termin"
+                    style="margin-top: 0.5rem; font-size: 0.8rem; padding: 0.5rem 1rem;">+ Termin hinzufügen</button>
                 {{ form.termine }}
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label>{{ form.mitzubringen.label }}</label>
+                {{ form.mitzubringen }}
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+                <label>{{ form.hinweise.label }}</label>
+                {{ form.hinweise }}
             </div>
 
             <div style="grid-column: span 2; margin-top: 1rem;">
@@ -63,4 +75,67 @@
         </div>
     </form>
 </div>
+
+<script>
+    const container = document.getElementById('termine-container');
+    const addButton = document.getElementById('add-termin');
+    const hiddenInput = document.querySelector('input[name="termine"]');
+
+    function updateHiddenInput() {
+        const entries = [];
+        container.querySelectorAll('.termin-row').forEach(row => {
+            const datum = row.querySelector('.datum').value;
+            const start = row.querySelector('.start').value;
+            const ende = row.querySelector('.ende').value;
+            if (datum || start || ende) {
+                entries.push({ datum, start, ende });
+            }
+        });
+        hiddenInput.value = JSON.stringify(entries);
+    }
+
+    function addRow(data = { datum: '', start: '', ende: '' }) {
+        const row = document.createElement('div');
+        row.className = 'termin-row';
+        row.style = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;';
+        row.innerHTML = `
+            <input type="date" class="datum" value="${data.datum || ''}" style="flex: 2;">
+            <input type="time" class="start" value="${data.start || ''}" style="flex: 1;">
+            <span style="color: var(--text-muted)">bis</span>
+            <input type="time" class="ende" value="${data.ende || ''}" style="flex: 1;">
+            <button type="button" class="btn-remove" style="background: none; border: none; color: var(--error); cursor: pointer; font-size: 1.5rem; padding: 0 0.5rem;">&times;</button>
+        `;
+
+        row.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', updateHiddenInput);
+        });
+
+        row.querySelector('.btn-remove').addEventListener('click', () => {
+            row.remove();
+            updateHiddenInput();
+        });
+
+        container.appendChild(row);
+    }
+
+    addButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        addRow();
+    });
+
+    // Initialize
+    window.addEventListener('DOMContentLoaded', () => {
+        try {
+            const initial = JSON.parse(hiddenInput.value || '[]');
+            if (initial.length === 0) {
+                addRow();
+            } else {
+                initial.forEach(data => addRow(data));
+            }
+        } catch (e) {
+            console.error("Error parsing initial termine:", e);
+            addRow();
+        }
+    });
+</script>
 {% endblock %}

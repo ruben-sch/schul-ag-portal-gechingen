@@ -29,7 +29,9 @@ def simulate():
             'klassenstufe_min': random.randint(1, 2),
             'klassenstufe_max': random.randint(3, 4),
             'kapazitaet': random.randint(5, 10),
-            'termine': "Montag 14 Uhr",
+            'termine': '[{"datum": "2026-03-02", "start": "14:00", "ende": "15:30"}]',
+            'mitzubringen': 'Testausrüstung',
+            'hinweise': 'Keine',
             'verantwortlicher_name': f"Leiter {i}",
             'verantwortlicher_email': f"leiter{i}@example.com",
             'verantwortlicher_telefon': "012345678"

@@ -8,11 +8,12 @@
 <div class="ag-item">
     <div class="ag-title">{{ ag.name }}</div>
     <div class="text-muted">
-        <strong>Termin:</strong> {{ ag.termine }}<br>
+        <strong>Termin(e):</strong> {{ ag.get_termine_display }}<br>
         <strong>Ort:</strong> {{ ag.ort|default:"Wird noch bekannt gegeben" }}<br>
         <strong>Kosten:</strong> {{ ag.kosten }} €<br>
         <strong>Leiter:</strong> {{ ag.verantwortlicher_name }}<br>
         <strong>Kontakt:</strong> {{ ag.verantwortlicher_email }}
+        {% if ag.mitzubringen %}<br><strong>Mitzubringen:</strong> {{ ag.mitzubringen }}{% endif %}
     </div>
 </div>
 {% endfor %}

@@ -2,7 +2,7 @@
 
 # Starten der Docker-Umgebung
 up:
-	docker compose up --build -d
+	docker compose up --build -d --remove-orphans
 
 # Stoppen der Umgebung
 down:
