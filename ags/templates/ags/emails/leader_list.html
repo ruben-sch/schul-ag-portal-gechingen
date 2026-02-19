@@ -1,8 +1,62 @@
+{% extends "ags/emails/base_email.html" %}
+
+{% block content %}
 <h1>Hallo {{ ag.verantwortlicher_name }},</h1>
-<p>Hier ist die aktuelle Teilnehmerliste für deine AG <strong>{{ ag.name }}</strong>:</p>
-<ul>
-    {% for p in participants %}
-    <li>{{ p.schueler.get_full_name }} ({{ p.schueler.email }})</li>
-    {% endfor %}
-</ul>
-<p>Das Losverfahren wurde erfolgreich abgeschlossen.</p>
+<p>Hier ist die aktuelle Liste für deine AG <strong>{{ ag.name }}</strong>:</p>
+
+<h2 style="font-size: 20px; margin-top: 30px;">Teilnehmerliste (Zugelassen)</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Klasse</th>
+            <th>Notfall-Tel.</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in participants %}
+        <tr>
+            <td>{{ p.schueler.name }}</td>
+            <td>{{ p.schueler.user.email }}</td>
+            <td>{{ p.schueler.klassenstufe }}</td>
+            <td>{{ p.schueler.notfall_telefon }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4" style="text-align: center;" class="text-muted">Keine Teilnehmer.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<h2 style="font-size: 20px; margin-top: 30px;">Warteliste (Nachrücker)</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Klasse</th>
+            <th>Notfall-Tel.</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for w in waitlist %}
+        <tr>
+            <td>{{ w.schueler.name }}</td>
+            <td>{{ w.schueler.user.email }}</td>
+            <td>{{ w.schueler.klassenstufe }}</td>
+            <td>{{ w.schueler.notfall_telefon }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4" style="text-align: center;" class="text-muted">Keine Personen auf der Warteliste.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<p style="margin-top: 30px; font-size: 14px;" class="text-muted">
+    <em>Absagen werden direkt an dich gesendet. Bitte kontaktiere eventuelle Nachrücker selbst. Vielen Dank!</em>
+</p>
+{% endblock %}

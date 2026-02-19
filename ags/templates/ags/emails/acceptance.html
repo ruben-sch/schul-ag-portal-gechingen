@@ -1,5 +1,21 @@
-<h1>Hallo {{ user.first_name }},</h1>
-<p>Gute Nachrichten! Du hast einen Platz in der AG <strong>{{ ag.name }}</strong> erhalten.</p>
-<p>Termine: {{ ag.termine }}</p>
-<p>Kosten: {{ ag.kosten }} €</p>
-<p>Viel Spaß!</p>
+{% extends "ags/emails/base_email.html" %}
+
+{% block content %}
+<h1>Hallo {{ schueler.name }},</h1>
+<p>Gute Nachrichten! Du hast einen Platz in den folgenden AGs erhalten:</p>
+
+{% for ag in ag_list %}
+<div class="ag-item">
+    <div class="ag-title">{{ ag.name }}</div>
+    <div class="text-muted">
+        <strong>Termin:</strong> {{ ag.termine }}<br>
+        <strong>Ort:</strong> {{ ag.ort|default:"Wird noch bekannt gegeben" }}<br>
+        <strong>Kosten:</strong> {{ ag.kosten }} €<br>
+        <strong>Leiter:</strong> {{ ag.verantwortlicher_name }}<br>
+        <strong>Kontakt:</strong> {{ ag.verantwortlicher_email }}
+    </div>
+</div>
+{% endfor %}
+
+<p style="margin-top: 30px;">Wir wünschen dir viel Spaß in deinen AGs!</p>
+{% endblock %}

@@ -16,18 +16,48 @@ services:
       retries: 5
     restart: always
 
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL:-admin@schwarzpost.de}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    restart: always
+
   web:
     image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:latest
     command: >
       sh -c "python manage.py migrate --noinput &&
              gunicorn config.wsgi:application --bind 0.0.0.0:8000"
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER:-ag_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-ag_portal}
       - SECRET_KEY=${SECRET_KEY}
       - DEBUG=False
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-*}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-schul-ag.schwarzpost.de}
+      - EMAIL_URL=smtp://${SMTP_USER}:${SMTP_PASSWORD}@${SMTP_HOST}:${SMTP_PORT:-587}?tls=True
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ag-portal.rule=Host(`schul-ag.schwarzpost.de`)"
+      - "traefik.http.routers.ag-portal.entrypoints=websecure"
+      - "traefik.http.routers.ag-portal.tls.certresolver=myresolver"
+      - "traefik.http.middlewares.ag-portal-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.ag-portal-http.rule=Host(`schul-ag.schwarzpost.de`)"
+      - "traefik.http.routers.ag-portal-http.entrypoints=web"
+      - "traefik.http.routers.ag-portal-http.middlewares=ag-portal-https-redirect"
+      - "traefik.http.services.ag-portal.loadbalancer.server.port=8000"
     depends_on:
       db:
         condition: service_healthy

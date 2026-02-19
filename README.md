@@ -83,8 +83,17 @@ ssh-copy-id -i ./id_ed25519_hetzner.pub root@123.123.123.123
 ### Automatisches Deployment
 Sobald Änderungen in den `main` Branch gepusht werden, baut GitHub ein Image, lädt es in die **GitHub Container Registry (GHCR)** hoch und startet die Container auf dem Hetzner-Server neu.
 
+### E-Mail Versand mit Resend (Produktion)
+
+Für den E-Mail-Versand in der Produktion wird **Resend** empfohlen.
+
+1.  **Account erstellen**: Registriere dich bei [Resend.com](https://resend.com/).
+2.  **Domain verifizieren**: Füge deine Domain (z.B. `schwarzpost.de`) hinzu und hinterlege die angezeigten DNS-Einträge (SPF/DKIM) bei deinem Domain-Provider.
+3.  **API-Key erstellen**: Erstelle einen API-Key mit "Sending" Berechtigung.
+
 ### Notwendige GitHub Secrets
-Damit das Deployment funktioniert, müssen im GitHub Repository unter `Settings -> Secrets and variables -> Actions` folgende Secrets hinterlegt werden:
+
+Damit das Deployment und der E-Mail-Versand funktionieren, müssen im GitHub Repository folgende Secrets hinterlegt werden:
 
 | Secret Name | Beschreibung |
 | :--- | :--- |
@@ -93,7 +102,21 @@ Damit das Deployment funktioniert, müssen im GitHub Repository unter `Settings 
 | `HETZNER_SSH_KEY` | Privater SSH-Key für den Zugriff |
 | `SECRET_KEY` | Ein sicherer Django Secret Key |
 | `POSTGRES_PASSWORD` | Passwort für die PostgreSQL Datenbank |
-| `ALLOWED_HOSTS` | Die IP Ihres Servers (z.B. `123.123.123.123`) oder Domain. `*` ist auch möglich (weniger sicher). |
+| `ALLOWED_HOSTS` | Kommagetrennte Liste der Domains, z.B. `schul-ag.schwarzpost.de,schul-ag.foerderverein-sgs-gechingen.de` |
+| `SMTP_HOST` | Host für Resend: `smtp.resend.com` |
+| `SMTP_USER` | Der Wert `resend` |
+| `SMTP_PASSWORD` | Dein Resend API-Key (beginnt mit `re_...`) |
+| `ACME_EMAIL` | E-Mail für Let's Encrypt Benachrichtigungen |
+
+### Ersten Admin-Account erstellen
+Da die Datenbank auf dem Server leer startet, musst du einmalig manuell einen Administrator anlegen. Führe dazu diesen Befehl auf deinem Hetzner-Server aus:
+
+```bash
+cd ~/schul-ag-portal/
+docker compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
+```
+
+Folge danach den Anweisungen im Terminal, um Benutzername, E-Mail und Passwort festzulegen.
 
 ---
 
