@@ -42,7 +42,7 @@ def trigger_emails(modeladmin, request, queryset):
 
 @admin.register(AG)
 class AGAdmin(admin.ModelAdmin):
-    list_display = ('name', 'verantwortlicher_name', 'klassenstufe_min', 'klassenstufe_max', 'status', 'kapazitaet', 'leader_magic_link')
+    list_display = ('name', 'verantwortlicher_name', 'get_termine_display', 'klassenstufe_min', 'klassenstufe_max', 'status', 'kapazitaet', 'leader_magic_link')
     list_filter = ('status', 'klassenstufe_min', 'klassenstufe_max')
     actions = [make_approved, trigger_lottery, undo_lottery, trigger_emails]
     search_fields = ('name', 'verantwortlicher_name', 'verantwortlicher_email')

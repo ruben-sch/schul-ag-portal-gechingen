@@ -27,7 +27,9 @@ def seed():
             klassenstufe_min=1,
             klassenstufe_max=2,
             kapazitaet=20,
-            termine="Dienstag 14:00",
+            termine=[{'datum': '2026-03-03', 'start': '14:00', 'ende': '15:30'}],
+            ort="Turnhalle",
+            mitzubringen="Sportzeug",
             verantwortlicher_name="Herr Schmidt",
             verantwortlicher_email="schmidt@schule.de",
             status='APPROVED'
@@ -35,11 +37,13 @@ def seed():
         AG.objects.create(
             name="Coding AG",
             beschreibung="Learn Python and Django.",
-            kosten=5.00,
+            kosten=5,
             klassenstufe_min=3,
             klassenstufe_max=4,
             kapazitaet=15,
-            termine="Mittwoch 15:30",
+            termine=[{'datum': '2026-03-04', 'start': '15:30', 'ende': '17:00'}],
+            ort="Computerraum",
+            mitzubringen="Stick & gute Laune",
             verantwortlicher_name="Fr. Tech",
             verantwortlicher_email="tech@schule.de",
             status='APPROVED'

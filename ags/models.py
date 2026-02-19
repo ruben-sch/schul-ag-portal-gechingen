@@ -10,12 +10,33 @@ class AG(models.Model):
 
     name = models.CharField(max_length=200)
     beschreibung = models.TextField()
-    kosten = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
+    kosten = models.DecimalField(max_digits=2, decimal_places=0, default=0)
     klassenstufe_min = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])
     klassenstufe_max = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])
     kapazitaet = models.PositiveIntegerField()
-    termine = models.TextField(help_text="Liste von Terminen, z.B. Montags 14:00 - 15:30")
+    termine = models.JSONField(default=list, help_text="Liste von Terminen mit Datum, Start- und Endzeit")
     ort = models.CharField(max_length=200, blank=True, help_text="Ort der AG, z.B. Turnhalle, Klassenzimmer 101")
+    
+    def get_termine_display(self):
+        if not self.termine:
+            return "Keine Termine"
+        if isinstance(self.termine, str):
+            return self.termine
+        formatted = []
+        for t in self.termine:
+            datum = t.get('datum', '')
+            try:
+                # If it's an ISO date string, we can try to format it a bit nicer
+                # but for simplicity we keep it as is or do a basic replacement
+                if '-' in datum and len(datum) == 10:
+                    y, m, d = datum.split('-')
+                    datum = f"{d}.{m}.{y}"
+            except:
+                pass
+            formatted.append(f"{datum} ({t.get('start', '')}-{t.get('ende', '')})")
+        return ", ".join(formatted)
+    mitzubringen = models.TextField(blank=True, help_text="Was müssen die Kinder mitbringen? (z.B. Sportzeug, Mäppchen)")
+    hinweise = models.TextField(blank=True, help_text="Fragen / Organisatorische Hinweise")
     
     verantwortlicher_name = models.CharField(max_length=200)
     verantwortlicher_email = models.EmailField()

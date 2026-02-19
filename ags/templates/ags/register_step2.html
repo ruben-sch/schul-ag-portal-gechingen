@@ -18,6 +18,9 @@
                     <input type="checkbox" name="ags" value="{{ ag.id }}" style="width: 24px; height: 24px;">
                 </div>
                 <p style="font-size: 0.9rem; margin: 0.5rem 0;">{{ ag.beschreibung|truncatewords:20 }}</p>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0;">
+                    <strong>Wann:</strong> {{ ag.get_termine_display }}
+                </p>
                 <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
                     <span class="badge">Kostet: {{ ag.kosten }} €</span>
                     <span class="badge">Leiter: {{ ag.verantwortlicher_name }}</span>
