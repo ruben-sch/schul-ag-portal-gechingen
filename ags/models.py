@@ -15,6 +15,7 @@ class AG(models.Model):
     klassenstufe_max = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])
     kapazitaet = models.PositiveIntegerField()
     termine = models.TextField(help_text="Liste von Terminen, z.B. Montags 14:00 - 15:30")
+    ort = models.CharField(max_length=200, blank=True, help_text="Ort der AG, z.B. Turnhalle, Klassenzimmer 101")
     
     verantwortlicher_name = models.CharField(max_length=200)
     verantwortlicher_email = models.EmailField()

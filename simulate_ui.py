@@ -1,9 +1,10 @@
+import os
 import requests
 from bs4 import BeautifulSoup
 import random
 import time
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8000")
 
 def get_csrf_token(session, url):
     response = session.get(url)

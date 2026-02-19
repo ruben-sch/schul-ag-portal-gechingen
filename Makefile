@@ -26,7 +26,7 @@ next-semester:
 
 # Simuliert 10 AGs und 100 Schüler über das UI
 test:
-	docker compose run --rm web python simulate_ui.py
+	docker compose exec web python simulate_ui.py
 
 # Zeigt die aktuellen Logs an
 logs:
