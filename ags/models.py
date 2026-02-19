@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.contrib import messages
 
 class AG(models.Model):
     STATUS_CHOICES = [
@@ -26,14 +25,11 @@ class AG(models.Model):
         formatted = []
         for t in self.termine:
             datum = t.get('datum', '')
-            try:
-                # If it's an ISO date string, we can try to format it a bit nicer
-                # but for simplicity we keep it as is or do a basic replacement
-                if '-' in datum and len(datum) == 10:
-                    y, m, d = datum.split('-')
-                    datum = f"{d}.{m}.{y}"
-            except Exception:
-                messages.error(request, "Fehler beim Parsen des Datums.")
+            # If it's an ISO date string, we can try to format it a bit nicer
+            # but for simplicity we keep it as is or do a basic replacement
+            if '-' in datum and len(datum) == 10:
+                y, m, d = datum.split('-')
+                datum = f"{d}.{m}.{y}"
             formatted.append(f"{datum} ({t.get('start', '')}-{t.get('ende', '')})")
         return ", ".join(formatted)
     mitzubringen = models.TextField(blank=True, help_text="Was müssen die Kinder mitbringen? (z.B. Sportzeug, Mäppchen)")
