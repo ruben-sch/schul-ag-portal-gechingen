@@ -24,7 +24,13 @@ class Command(BaseCommand):
                 schueler_email=anm.schueler.user.email,
                 ag_name=anm.ag.name,
                 halbyahr=semester_label,
-                status=anm.get_status_display()
+                status=anm.get_status_display(),
+                details={
+                    'ag_termin_display': anm.ag.get_termine_display(),
+                    'ag_ort': anm.ag.ort,
+                    'ag_leiter': anm.ag.verantwortlicher_name,
+                    'ag_termine_raw': anm.ag.termine,
+                }
             ) for anm in anmeldungen
         ]
         ArchivEintrag.objects.bulk_create(archiv_objekte)

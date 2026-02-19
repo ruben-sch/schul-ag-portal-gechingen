@@ -60,6 +60,9 @@ class SchuelerProfile(models.Model):
     class Meta:
         verbose_name = "Schüler"
         verbose_name_plural = "Schüler"
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'name'], name='unique_child_per_parent')
+        ]
 
     def __str__(self):
         return f"{self.name} (Klasse {self.klassenstufe})"
@@ -98,6 +101,7 @@ class ArchivEintrag(models.Model):
     ag_name = models.CharField(max_length=200)
     halbyahr = models.CharField(max_length=20, help_text="z.B. 2023/24_H1")
     status = models.CharField(max_length=20)
+    details = models.JSONField(default=dict, blank=True, help_text="Alle Details zur Zuteilung (AG-Zeiten, Ort etc.)")
     datum = models.DateTimeField(auto_now_add=True)
 
     class Meta:

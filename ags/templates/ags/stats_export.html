@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>AG-Statistik Export - {{ date|date:"d.m.Y" }}</title>
+    <style>
+        body { font-family: sans-serif; line-height: 1.4; color: #333; }
+        .no-print { display: block; margin-bottom: 20px; padding: 10px; background: #eee; border: 1px solid #ccc; text-align: center; }
+        @media print { .no-print { display: none; } }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; page-break-inside: auto; }
+        tr { page-break-inside: avoid; page-break-after: auto; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 12px; }
+        th { background-color: #f2f2f2; }
+        h1, h2 { color: #000; }
+        .footer { font-size: 10px; color: #777; margin-top: 2rem; border-top: 1px solid #eee; padding-top: 5px; }
+    </style>
+</head>
+<body onload="window.print()">
+    <div class="no-print">
+        <strong>Druckansicht</strong> - Nutzen Sie die Druckfunktion Ihres Browsers (Strg+P), um ein PDF zu erstellen.<br>
+        <button onclick="window.close()" style="margin-top: 10px; padding: 5px 15px; cursor: pointer;">Schließen</button>
+    </div>
+
+    <h1>AG-Statistiken - Gechingen</h1>
+    <p>Stand: {{ date|date:"d.m.Y H:i" }} Uhr | Gesamtanzahl Schüler: {{ total_schueler }}</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>AG Name</th>
+                <th>Leiter</th>
+                <th>Kapazität</th>
+                <th>Teilnehmer (Zugelassen)</th>
+                <th>Warteliste</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ag in ag_stats %}
+            <tr>
+                <td><strong>{{ ag.name }}</strong></td>
+                <td>{{ ag.verantwortlicher_name }}</td>
+                <td>{{ ag.kapazitaet }}</td>
+                <td>
+                    {% for anm in ag.anmeldungen.all %}
+                        {% if anm.status == 'ACCEPTED' %}{{ anm.schueler.name }}{% if not forloop.last %}, {% endif %}{% endif %}
+                    {% empty %}-{% endfor %}
+                </td>
+                <td>
+                    {% for anm in ag.anmeldungen.all %}
+                        {% if anm.status != 'ACCEPTED' %}{{ anm.schueler.name }} (P{{ anm.prio }}){% if not forloop.last %}, {% endif %}{% endif %}
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class=footer>
+        Automatisch generiert am {{ date|date:"d.m.Y H:i" }} - AG-Portal Gechingen
+    </div>
+</body>
+</html>

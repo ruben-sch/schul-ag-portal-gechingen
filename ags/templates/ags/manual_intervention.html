@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>Manuelle Nachbearbeitung</h1>
+        <a href="{% url 'stats_dashboard' %}" class="btn btn-outline">Zurück zum Dashboard</a>
+    </div>
+
+    <p style="color: var(--text-muted); margin-bottom: 2rem;">
+        Hier können Sie manuell den Status von Schüleranmeldungen (Zugelassen/Warteliste) ändern.
+    </p>
+
+    <div class="card" style="padding: 1.5rem;">
+        <h2>Schülerliste & Zuteilungen</h2>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 1px solid var(--border);">
+                        <th style="padding: 1rem 0;">Schüler</th>
+                        <th style="padding: 1rem 0;">AG / Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 1rem 0;">
+                            <strong>{{ student.name }}</strong> (Klasse {{ student.klassenstufe }})
+                        </td>
+                        <td style="padding: 1rem 0;">
+                            {% for anm in student.anmeldungen.all %}
+                            <div
+                                style="margin-bottom: 1rem; padding: 0.5rem; background: var(--bg); border-radius: 6px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span>
+                                        {{ anm.ag.name }}
+                                        {% if anm.status == 'ACCEPTED' %}
+                                        <span class="badge"
+                                            style="background: rgba(34, 197, 94, 0.2); color: #4ade80;">Zugelassen</span>
+                                        {% else %}
+                                        <span class="badge"
+                                            style="background: rgba(239, 68, 68, 0.2); color: #f87171;">Warteliste</span>
+                                        {% endif %}
+                                    </span>
+                                    <form method="post" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="anmeldung_id" value="{{ anm.id }}">
+                                        <input type="hidden" name="action" value="toggle_status">
+                                        <button type="submit" class="btn btn-outline"
+                                            style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                                            {% if anm.status == 'ACCEPTED' %}
+                                                Auf Warteliste setzen
+                                            {% else %}
+                                                Zulassen
+                                            {% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+        </div>
+    </div>
+    {% empty %}
+    <span style="color: var(--text-muted);">Keine Anmeldungen</span>
+    {% endfor %}
+    </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+</div>
+</div>
+</div>
+{% endblock %}

@@ -53,6 +53,7 @@ MIDDLEWARE = [
     "sesame.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -88,7 +89,7 @@ AUTHENTICATION_BACKENDS = [
 
 # Magic Links configuration
 SESAME_TOKEN_NAME = "secret"
-SESAME_MAX_AGE = 600  # 10 minutes
+SESAME_MAX_AGE = 60 * 60 * 24 * 150  # 150 days
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -114,3 +115,15 @@ vars().update(env.email_url())
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Security Headers for Production
+if not DEBUG:
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
