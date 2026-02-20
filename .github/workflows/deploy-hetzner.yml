@@ -82,7 +82,7 @@ jobs:
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
           source: "services/traefik/traefik.prod.toml"
-          target: "~/schul-ag-portal/services/traefik/"
+          target: "~/schul-ag-portal/"
 
       - name: Deploy to Hetzner VPS
         uses: appleboy/ssh-action@master
@@ -100,7 +100,6 @@ jobs:
             if [ ! -f .env ]; then
               echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" > .env
               echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
-              echo "ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}" >> .env
             fi
             
             docker compose -f docker-compose.prod.yml pull

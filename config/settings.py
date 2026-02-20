@@ -31,6 +31,13 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
+# DIESE ZEILEN HINZUFÜGEN:
+# Vertraue dem X-Forwarded-Proto Header von Traefik für HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Erlaube der Domain CSRF-Requests (wichtig für Logins/Formulare)
+CSRF_TRUSTED_ORIGINS = ["https://schul-ag.schwarzpost.de"]
+
 # Application definition
 INSTALLED_APPS = [
     "django.contrib.admin",
