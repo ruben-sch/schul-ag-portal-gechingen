@@ -75,6 +75,15 @@ jobs:
           source: "docker-compose.prod.yml"
           target: "~/schul-ag-portal/"
 
+      - name: Copy traefik.prod.toml to server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          source: "services/traefik/traefik.prod.toml"
+          target: "~/schul-ag-portal/services/traefik/"
+
       - name: Deploy to Hetzner VPS
         uses: appleboy/ssh-action@master
         with:
@@ -83,9 +92,6 @@ jobs:
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
             cd ~/schul-ag-portal/
-            
-            # Lowercase the repository name for Docker pull
-            REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
             
             # GH_TOKEN needed if pulling from private repo on GHCR
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -96,9 +102,6 @@ jobs:
               echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
               echo "ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}" >> .env
             fi
-            
-            # Update image in docker-compose.prod.yml to use lowercase
-            sed -i "s|image: ghcr.io/.*|image: ghcr.io/$REPO_LOWER:latest|g" docker-compose.prod.yml
             
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d

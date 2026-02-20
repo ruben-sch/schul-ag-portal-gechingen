@@ -17,24 +17,24 @@ services:
     restart: always
 
   traefik:
-    image: traefik:v2.10
-    command:
-      - "--api.insecure=false"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=${ACME_EMAIL:-admin@schwarzpost.de}"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    image: traefik:v2.11
     environment:
       - DOCKER_API_VERSION=1.44
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - "./letsencrypt:/letsencrypt"
+      - "./traefik-public-certificates:/certificates"
+      - "./services/traefik/traefik.prod.toml:/etc/traefik/traefik.toml"
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard-schul-ag.schwarzpost.de`)"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=ruben:$$apr1$$ZWHMvmjo$$5SlQYVCq6k/IW/DedzhvD1"
     restart: always
 
   web:
@@ -53,13 +53,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ag-portal.rule=Host(`schul-ag.schwarzpost.de`)"
-      - "traefik.http.routers.ag-portal.entrypoints=websecure"
-      - "traefik.http.routers.ag-portal.tls.certresolver=myresolver"
-      - "traefik.http.middlewares.ag-portal-https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.routers.ag-portal-http.rule=Host(`schul-ag.schwarzpost.de`)"
-      - "traefik.http.routers.ag-portal-http.entrypoints=web"
-      - "traefik.http.routers.ag-portal-http.middlewares=ag-portal-https-redirect"
-      - "traefik.http.services.ag-portal.loadbalancer.server.port=8000"
+      - "traefik.http.routers.ag-portal.tls=true"
+      - "traefik.http.routers.ag-portal.tls.certresolver=letsencrypt"
     depends_on:
       db:
         condition: service_healthy
@@ -67,3 +62,4 @@ services:
 
 volumes:
   postgres_data_prod:
+  traefik-public-certificates:

@@ -21,18 +21,33 @@ services:
              python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
-    ports:
-      - "8000:8000"
+    expose:
+      - 8000
     environment:
       - DEBUG=1
       - DATABASE_URL=postgres://ag_user:ag_password@db:5432/ag_portal
       - SECRET_KEY=django-insecure-development-key
-      - ALLOWED_HOSTS=localhost,127.0.0.1,web
+      - ALLOWED_HOSTS=localhost,127.0.0.1,web.localhost,web
       - EMAIL_URL=smtp://mailpit:1025
       - BASE_URL=http://web:8000
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.web.rule=Host(`web.localhost`)
     depends_on:
       db:
         condition: service_healthy
+
+  traefik:
+    image: traefik:v2.11
+    environment:
+      - DOCKER_API_VERSION=1.44
+    ports:
+      - "80:80"
+      - "8081:8080"
+    volumes:
+      - "./services/traefik/traefik.dev.toml:/etc/traefik/traefik.toml"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    restart: always
 
   mailpit:
     image: axllent/mailpit
