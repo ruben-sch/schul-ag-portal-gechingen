@@ -21,6 +21,7 @@ env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     EMAIL_URL=(str, "consolemail://"),
+    DEFAULT_FROM_EMAIL=(str, "bitte setze mich im .env"),
 )
 
 # Reading .env file
