@@ -125,3 +125,8 @@ body {
 .scale-in {
     animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
+
+.hover-text-light:hover {
+    color: #f8f9fa !important;
+    border-color: #f8f9fa !important;
+}
