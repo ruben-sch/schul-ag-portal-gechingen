@@ -117,5 +117,17 @@ class AppConfig(models.Model):
         verbose_name = "Konfiguration"
         verbose_name_plural = "Konfigurationen"
 
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        pass
+
+    @classmethod
+    def load(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
     def __str__(self):
         return "Globale Einstellungen"
