@@ -37,6 +37,24 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'register_schueler' %}">Anmeldung</a>
                     </li>
+                    {% if user.is_staff %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-warning" href="#" id="adminDropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            Admin
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" href="{% url 'stats_dashboard' %}">Statistik & Losverfahren</a>
+                            </li>
+                            <li><a class="dropdown-item" href="{% url 'manual_intervention' %}">Manuelle Korrektur</a>
+                            </li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="{% url 'admin:index' %}">Django Admin</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
                     {% if user.is_authenticated %}
                     <li class="nav-item ms-lg-3 mt-3 mt-lg-0">
                         <a href="{% url 'dashboard' %}" class="btn btn-outline-light w-100 w-lg-auto">Dashboard</a>
