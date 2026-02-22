@@ -37,7 +37,7 @@ ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Erlaube der Domain CSRF-Requests (wichtig für Logins/Formulare)
-CSRF_TRUSTED_ORIGINS = ["https://schul-ag.schwarzpost.de"]
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["https://schul-ag.schwarzpost.de"])
 
 # Application definition
 INSTALLED_APPS = [
