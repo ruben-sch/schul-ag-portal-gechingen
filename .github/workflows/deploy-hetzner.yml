@@ -107,6 +107,7 @@ jobs:
             grep -q "^SMTP_PASSWORD=" .env || echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> .env
             grep -q "^SMTP_HOST=" .env || echo "SMTP_HOST=${{ secrets.SMTP_HOST }}" >> .env
             grep -q "^SMTP_PORT=" .env || echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> .env
+            grep -q "^DEFAULT_FROM_EMAIL=" .env || echo "DEFAULT_FROM_EMAIL=${{ secrets.DEFAULT_FROM_EMAIL }}" >> .env
             
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
