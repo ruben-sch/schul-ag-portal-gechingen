@@ -136,6 +136,7 @@
 <div class="mt-5 text-center text-md-start">
     <form method="post" action="{% url 'admin:logout' %}">
         {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'landing' %}">
         <button type="submit" class="btn btn-outline-light px-4">Abmelden</button>
     </form>
 </div>
