@@ -120,6 +120,12 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 import sys
 if 'test' in sys.argv:
     STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
 else:
     STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
