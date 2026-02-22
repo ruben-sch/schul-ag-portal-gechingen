@@ -121,6 +121,7 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Email settings
 vars().update(env.email_url())
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
