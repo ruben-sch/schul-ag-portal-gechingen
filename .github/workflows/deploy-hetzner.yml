@@ -102,5 +102,11 @@ jobs:
               echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
             fi
             
+            # Ensure SMTP variables are in .env
+            grep -q "^SMTP_USER=" .env || echo "SMTP_USER=${{ secrets.SMTP_USER }}" >> .env
+            grep -q "^SMTP_PASSWORD=" .env || echo "SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}" >> .env
+            grep -q "^SMTP_HOST=" .env || echo "SMTP_HOST=${{ secrets.SMTP_HOST }}" >> .env
+            grep -q "^SMTP_PORT=" .env || echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> .env
+            
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
