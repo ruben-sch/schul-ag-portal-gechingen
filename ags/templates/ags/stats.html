@@ -3,103 +3,139 @@
 {% block title %}Statistik Dashboard - AG-Portal{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 3rem; display: flex; justify-content: space-between; align-items: flex-end;">
-    <div>
-        <h1>Zuteilungs-Statistik</h1>
-        <p style="color: var(--text-muted);">Auswertung des Losverfahrens und der aktuellen Auslastung.</p>
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-5 mt-4">
+    <div class="mb-3 mb-md-0">
+        <h1 class="display-5 text-light mb-2">Zuteilungs-Statistik</h1>
+        <p class="lead text-secondary mb-0">Auswertung des Losverfahrens und der aktuellen Auslastung.</p>
     </div>
-    <div style="display: flex; gap: 1rem; align-items: center;">
-        <a href="{% url 'stats_export' %}" target="_blank" class="btn btn-outline" style="text-decoration: none;">📄
-            PDF/Druck</a>
-        <a href="{% url 'manual_intervention' %}" class="btn btn-outline" style="text-decoration: none;">✏️
-            Korrektur</a>
-        <a href="/run-lottery-internal/" class="btn btn-primary">Losverfahren jetzt starten</a>
-    </div>
-</div>
-
-<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 3rem;">
-    <div class="card" style="text-align: center; padding: 1.5rem;">
-        <div style="font-size: 2rem; font-weight: 700; color: var(--primary);">{{ total_schueler }}</div>
-        <div style="color: var(--text-muted); font-size: 0.9rem;">Schüler Gesamt</div>
-    </div>
-    <div class="card" style="text-align: center; padding: 1.5rem;">
-        <div style="font-size: 2rem; font-weight: 700; color: var(--success);">{{ total_accepted }}</div>
-        <div style="color: var(--text-muted); font-size: 0.9rem;">Zuteilungen</div>
-    </div>
-    <div class="card" style="text-align: center; padding: 1.5rem;">
-        <div style="font-size: 2rem; font-weight: 700;">{{ total_slots }}</div>
-        <div style="color: var(--text-muted); font-size: 0.9rem;">Verfügbare Plätze</div>
-    </div>
-    <div class="card" style="text-align: center; padding: 1.5rem;">
-        <div style="font-size: 2rem; font-weight: 700; color: #f59e0b;">{{ min_ags }} - {{ max_ags }}</div>
-        <div style="color: var(--text-muted); font-size: 0.9rem;">AGs pro Schüler (Min-Max)</div>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <a href="{% url 'stats_export' %}" target="_blank"
+            class="btn btn-outline-light d-flex align-items-center gap-2">
+            <span>📄</span> PDF/Druck
+        </a>
+        <a href="{% url 'manual_intervention' %}" class="btn btn-outline-light d-flex align-items-center gap-2">
+            <span>✏️</span> Korrektur
+        </a>
+        <a href="/run-lottery-internal/" class="btn btn-brand-primary">Losverfahren jetzt starten</a>
     </div>
 </div>
 
-<div class="card" style="margin-bottom: 3rem;">
-    <h2>Auslastung & Teilnehmerlisten</h2>
-    <div style="overflow-x: auto; margin-top: 1.5rem;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="text-align: left; border-bottom: 1px solid var(--border);">
-                    <th style="padding: 1rem 0;">AG Name / Listen</th>
-                    <th style="padding: 1rem 0;">Stats</th>
-                    <th style="padding: 1rem 0;">Auslastung</th>
+<div class="row g-4 mb-5">
+    <div class="col-6 col-md-3">
+        <div class="glass-card p-4 text-center h-100">
+            <div class="display-5 fw-bold text-primary mb-2">{{ total_schueler }}</div>
+            <div class="text-secondary small text-uppercase fw-semibold tracking-wide">Schüler Gesamt</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="glass-card p-4 text-center h-100">
+            <div class="display-5 fw-bold text-success mb-2">{{ total_accepted }}</div>
+            <div class="text-secondary small text-uppercase fw-semibold tracking-wide">Zuteilungen</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="glass-card p-4 text-center h-100">
+            <div class="display-5 fw-bold text-light mb-2">{{ total_slots }}</div>
+            <div class="text-secondary small text-uppercase fw-semibold tracking-wide">Verfügbare Plätze</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="glass-card p-4 text-center h-100">
+            <div class="display-5 fw-bold text-warning mb-2">{{ min_ags }} - {{ max_ags }}</div>
+            <div class="text-secondary small text-uppercase fw-semibold tracking-wide">AGs pro Schüler</div>
+        </div>
+    </div>
+</div>
+
+<div class="glass-card p-4 p-md-5 mb-5">
+    <h2 class="h3 text-light mb-4 pb-3 border-bottom border-secondary border-opacity-25">Auslastung & Teilnehmerlisten
+    </h2>
+    <div class="table-responsive">
+        <table class="table table-dark table-hover table-borderless align-middle mb-0" style="background: transparent;">
+            <thead class="border-bottom border-secondary border-opacity-50">
+                <tr>
+                    <th scope="col" class="py-3 text-secondary fw-normal w-50">AG Name / Listen</th>
+                    <th scope="col" class="py-3 text-secondary fw-normal">Stats</th>
+                    <th scope="col" class="py-3 text-secondary fw-normal">Auslastung</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="border-top-0">
                 {% for ag in ag_stats %}
-                <tr style="border-bottom: 2px solid var(--border);">
-                    <td style="padding: 1rem 0; vertical-align: top; width: 40%;">
-                        <strong>{{ ag.name }}</strong>
-                        <div style="margin-top: 1rem; font-size: 0.85rem;">
-                            <div style="color: var(--success); font-weight: bold; margin-bottom: 0.5rem;">Zugelassen:
-                            </div>
-                            {% for anm in ag.accepted_list %}
-                            <div style="padding-left: 0.5rem;">• {{ anm.schueler.name }} ({{ anm.schueler.user.email }})
-                            </div>
-                            {% empty %}
-                            <div style="color: var(--text-muted); padding-left: 0.5rem;">- Keine -</div>
-                            {% endfor %}
+                <tr class="border-bottom border-secondary border-opacity-10 align-top">
+                    <td class="py-4 pe-4">
+                        <strong class="fs-5 text-light d-block mb-3">{{ ag.name }}</strong>
+                        <div class="small">
+                            <div class="text-success fw-bold mb-2">Zugelassen:</div>
+                            <ul class="list-unstyled ps-3 mb-4 border-start border-success border-opacity-25">
+                                {% for anm in ag.accepted_list %}
+                                <li class="mb-1 text-light">{{ anm.schueler.name }} <span
+                                        class="text-secondary ms-1">({{ anm.schueler.user.email }})</span></li>
+                                {% empty %}
+                                <li class="text-secondary fst-italic">- Keine -</li>
+                                {% endfor %}
+                            </ul>
 
-                            <div
-                                style="color: var(--error); font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem;">
-                                Warteliste:</div>
-                            {% for anm in ag.waiting_list %}
-                            <div style="padding-left: 0.5rem;">
-                                #{{ forloop.counter }} {{ anm.schueler.name }} (Prio {{ anm.prio }})
+                            <div class="text-danger fw-bold mb-2">Warteliste:</div>
+                            <ul class="list-unstyled ps-3 mb-0 border-start border-danger border-opacity-25">
+                                {% for anm in ag.waiting_list %}
+                                <li class="mb-1 text-light">
+                                    <span class="text-secondary me-2">#{{ forloop.counter }}</span>
+                                    {{ anm.schueler.name }}
+                                    <span
+                                        class="badge bg-secondary bg-opacity-25 text-light border border-secondary ms-2 fw-normal">Prio
+                                        {{ anm.prio }}</span>
+                                </li>
+                                {% empty %}
+                                <li class="text-secondary fst-italic">- Leer -</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </td>
+                    <td class="py-4">
+                        <div class="small text-secondary font-monospace lh-lg">
+                            <div class="d-flex justify-content-between"><span class="text-light">Bewerber:</span>
+                                <span>{{ ag.reg_count }}</span>
                             </div>
-                            {% empty %}
-                            <div style="color: var(--text-muted); padding-left: 0.5rem;">- Leer -</div>
-                            {% endfor %}
-                        </div>
-                    </td>
-                    <td style="padding: 1rem 0; vertical-align: top;">
-                        <div style="font-size: 0.9rem;">
-                            Bewerber: {{ ag.reg_count }}<br>
-                            Zugelassen: {{ ag.acc_count }}<br>
-                            Kapazität: {{ ag.kapazitaet }}
-                        </div>
-                    </td>
-                    <td style="padding: 1rem 0; vertical-align: top;">
-                        <!-- Demand Load -->
-                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px;">
-                            Nachfrage: {{ ag.reg_percent }}%
-                        </div>
-                        <div
-                            style="width: 100px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 8px;">
+                            <div class="d-flex justify-content-between"><span class="text-light">Zugelassen:</span>
+                                <span class="text-success fw-bold">{{ ag.acc_count }}</span>
+                            </div>
                             <div
-                                style="width: {{ ag.reg_percent_clamped }}%; height: 100%; background: {% if ag.reg_percent > 100 %}var(--error){% else %}var(--primary){% endif %};">
+                                class="d-flex justify-content-between border-top border-secondary border-opacity-25 mt-1 pt-1">
+                                <span class="text-light">Kapazität:</span> <span>{{ ag.kapazitaet }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4">
+                        <!-- Demand Load -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between small text-secondary mb-2">
+                                <span>Nachfrage</span>
+                                <span class="{% if ag.reg_percent > 100 %}text-danger fw-bold{% endif %}">
+                                    {{ ag.reg_percent }}%
+                                </span>
+                            </div>
+                            <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.1);">
+                                <div class="progress-bar {% if ag.reg_percent > 100 %}bg-danger{% else %}bg-primary{% endif %}"
+                                    role="progressbar" style="width: {{ ag.reg_percent_clamped }}%"
+                                    aria-valuenow="{{ ag.reg_percent_clamped }}" aria-valuemin="0" aria-valuemax="100">
+                                </div>
                             </div>
                         </div>
 
                         <!-- Fill Rate -->
-                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px;">
-                            Besetzung: {{ ag.acc_percent }}%
-                        </div>
-                        <div
-                            style="width: 100px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;">
-                            <div style="width: {{ ag.acc_percent }}%; height: 100%; background: var(--success);"></div>
+                        <div>
+                            <div class="d-flex justify-content-between small text-secondary mb-2">
+                                <span>Besetzung</span>
+                                <span class="{% if ag.acc_percent == 100 %}text-success fw-bold{% endif %}">
+                                    {{ ag.acc_percent }}%
+                                </span>
+                            </div>
+                            <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.1);">
+                                <div class="progress-bar bg-success" role="progressbar"
+                                    style="width: {{ ag.acc_percent }}%" aria-valuenow="{{ ag.acc_percent }}"
+                                    aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -109,56 +145,65 @@
     </div>
 </div>
 
-<div class="card" style="margin-bottom: 3rem;">
-    <h2>Schüler-Übersicht</h2>
+<div class="glass-card p-4 p-md-5 mb-5">
+    <h2 class="h3 text-light mb-4">Schüler-Übersicht</h2>
 
-    <form method="get" style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;">
-        <input type="text" name="student_search" value="{{ search_query }}" placeholder="Name suchen..."
-            style="background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.5rem 1rem; border-radius: 6px; flex: 1; min-width: 200px;">
-        <input type="number" name="min_ags" value="{{ min_ag_filter }}" placeholder="Mind. X AGs"
-            style="background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0.5rem 1rem; border-radius: 6px; width: 120px;">
-        <button type="submit" class="btn btn-primary">Filtern</button>
-        <a href="?" class="btn btn-outline">Zurücksetzen</a>
+    <form method="get" class="row g-3 mb-4 pb-4 border-bottom border-secondary border-opacity-25 align-items-center">
+        <div class="col-12 col-md-5 col-lg-6">
+            <input type="text" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary"
+                name="student_search" value="{{ search_query }}" placeholder="Name suchen...">
+        </div>
+        <div class="col-6 col-md-3 col-lg-3">
+            <input type="number" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary"
+                name="min_ags" value="{{ min_ag_filter }}" placeholder="Mind. X AGs">
+        </div>
+        <div class="col-6 col-md-4 col-lg-3 d-flex gap-2">
+            <button type="submit" class="btn btn-brand-primary w-50">Filtern</button>
+            <a href="?" class="btn btn-outline-light w-50">Reset</a>
+        </div>
     </form>
 
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="text-align: left; border-bottom: 1px solid var(--border);">
-                    <th style="padding: 1rem 0;">Schüler (Klasse)</th>
-                    <th style="padding: 1rem 0;">Zuteilungen & Wartelisten</th>
-                    <th style="padding: 1rem 0;">Anzahl</th>
+    <div class="table-responsive">
+        <table class="table table-dark table-hover table-borderless align-middle mb-0" style="background: transparent;">
+            <thead class="border-bottom border-secondary border-opacity-50">
+                <tr>
+                    <th scope="col" class="py-3 text-secondary fw-normal">Schüler (Klasse)</th>
+                    <th scope="col" class="py-3 text-secondary fw-normal">Zuteilungen & Wartelisten</th>
+                    <th scope="col" class="py-3 text-secondary fw-normal text-end">Anzahl</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody class="border-top-0">
                 {% for student in students %}
-                <tr style="border-bottom: 1px solid var(--border);">
-                    <td style="padding: 1rem 0;">
-                        <strong>{{ student.name }}</strong><br>
-                        <span style="font-size: 0.8rem; color: var(--text-muted);">
+                <tr class="border-bottom border-secondary border-opacity-10">
+                    <td class="py-3">
+                        <strong class="text-light d-block">{{ student.name }}</strong>
+                        <span class="small text-secondary">
                             Klasse {{ student.klassenstufe }}
                         </span>
                     </td>
-                    <td style="padding: 1rem 0; font-size: 0.85rem;">
-                        {% for anm in student.anmeldungen.all %}
-                        <div style="margin-bottom: 0.25rem;">
+                    <td class="py-3 small">
+                        <div class="d-flex flex-column gap-1">
+                            {% for anm in student.anmeldungen.all %}
                             {% if anm.status == 'ACCEPTED' %}
-                            <span style="color: var(--success); font-weight: bold;">✔ {{ anm.ag.name }}</span>
+                            <div class="text-success fw-medium"><i class="bi bi-check-circle-fill me-2"></i>
+                                {{ anm.ag.name }}</div>
                             {% else %}
-                            <span style="color: var(--text-muted);">⌛ {{ anm.ag.name }} (Warteliste)</span>
+                            <div class="text-secondary"><i class="bi bi-hourglass text-warning opacity-75 me-2"></i>
+                                {{ anm.ag.name }} <span class="opacity-50">(Warteliste)</span></div>
                             {% endif %}
+                            {% endfor %}
                         </div>
-                        {% endfor %}
                     </td>
-                    <td style="padding: 1rem 0;">
-                        <span class="badge" style="background: rgba(99, 102, 241, 0.2); color: var(--primary);">
+                    <td class="py-3 text-end">
+                        <span
+                            class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-50 px-3 py-2 rounded-pill fs-6">
                             {{ student.accepted_count }} AGs
                         </span>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="3" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                    <td colspan="3" class="py-5 text-center text-secondary fst-italic">
                         Keine Schüler gefunden, die den Kriterien entsprechen.
                     </td>
                 </tr>
@@ -168,7 +213,7 @@
     </div>
 </div>
 
-<div style="margin-top: 2rem;">
-    <a href="{% url 'landing' %}" class="btn btn-outline">Zurück zur Startseite</a>
+<div class="text-center text-md-start">
+    <a href="{% url 'landing' %}" class="btn btn-outline-light px-4">Zurück zur Startseite</a>
 </div>
 {% endblock %}

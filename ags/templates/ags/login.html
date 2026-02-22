@@ -3,19 +3,29 @@
 {% block title %}Login - AG-Portal{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 400px; margin: 0 auto;">
-    <h1>Login</h1>
-    <p style="color: var(--text-muted); margin-bottom: 2rem;">Gib deine E-Mail-Adresse ein, um einen Magic Link zu
-        erhalten.</p>
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <div class="glass-card p-4 p-md-5">
+            <h1 class="mb-3 text-light">Login</h1>
+            <p class="text-secondary mb-4">
+                Gib deine E-Mail-Adresse ein, um einen Magic Link zu erhalten.
+            </p>
 
-    <form method="post">
-        {% csrf_token %}
-        <div class="form-group">
-            <label>{{ form.email.label }}</label>
-            {{ form.email }}
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label class="form-label text-secondary">{{ form.email.label }}</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                    <div class="text-danger mt-1 small">
+                        {{ form.email.errors|striptags }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-brand-primary btn-lg w-100">Link anfordern</button>
+            </form>
         </div>
-
-        <button type="submit" class="btn btn-primary" style="width: 100%;">Link anfordern</button>
-    </form>
+    </div>
 </div>
 {% endblock %}

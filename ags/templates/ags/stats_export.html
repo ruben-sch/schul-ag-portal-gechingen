@@ -1,62 +1,78 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-bs-theme="light">
+
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AG-Statistik Export - {{ date|date:"d.m.Y" }}</title>
-    <style>
-        body { font-family: sans-serif; line-height: 1.4; color: #333; }
-        .no-print { display: block; margin-bottom: 20px; padding: 10px; background: #eee; border: 1px solid #ccc; text-align: center; }
-        @media print { .no-print { display: none; } }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; page-break-inside: auto; }
-        tr { page-break-inside: avoid; page-break-after: auto; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 12px; }
-        th { background-color: #f2f2f2; }
-        h1, h2 { color: #000; }
-        .footer { font-size: 10px; color: #777; margin-top: 2rem; border-top: 1px solid #eee; padding-top: 5px; }
-    </style>
+    <!-- Use Bootstrap via CDN for consistent styling and printing -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 </head>
-<body onload="window.print()">
-    <div class="no-print">
-        <strong>Druckansicht</strong> - Nutzen Sie die Druckfunktion Ihres Browsers (Strg+P), um ein PDF zu erstellen.<br>
-        <button onclick="window.close()" style="margin-top: 10px; padding: 5px 15px; cursor: pointer;">Schließen</button>
+
+<body onload="window.print()" class="bg-white text-dark">
+    <!-- Non-printable header for screen usage only -->
+    <div class="d-print-none alert alert-secondary text-center m-4 shadow-sm border">
+        <strong>Druckansicht</strong> - Nutzen Sie die Druckfunktion Ihres Browsers (Strg+P), um ein PDF zu
+        erstellen.<br>
+        <button onclick="window.close()" class="btn btn-secondary mt-2">Schließen</button>
     </div>
 
-    <h1>AG-Statistiken - Gechingen</h1>
-    <p>Stand: {{ date|date:"d.m.Y H:i" }} Uhr | Gesamtanzahl Schüler: {{ total_schueler }}</p>
+    <!-- Printable container -->
+    <div class="container-fluid p-4">
+        <div class="mb-4">
+            <h1 class="display-6 fw-bold text-dark mb-1">AG-Statistiken - Gechingen</h1>
+            <p class="text-secondary mb-0">
+                Stand: {{ date|date:"d.m.Y H:i" }} Uhr | Gesamtanzahl Schüler: {{ total_schueler }}</p>
+        </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>AG Name</th>
-                <th>Leiter</th>
-                <th>Kapazität</th>
-                <th>Teilnehmer (Zugelassen)</th>
-                <th>Warteliste</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for ag in ag_stats %}
-            <tr>
-                <td><strong>{{ ag.name }}</strong></td>
-                <td>{{ ag.verantwortlicher_name }}</td>
-                <td>{{ ag.kapazitaet }}</td>
-                <td>
-                    {% for anm in ag.anmeldungen.all %}
-                        {% if anm.status == 'ACCEPTED' %}{{ anm.schueler.name }}{% if not forloop.last %}, {% endif %}{% endif %}
-                    {% empty %}-{% endfor %}
-                </td>
-                <td>
-                    {% for anm in ag.anmeldungen.all %}
-                        {% if anm.status != 'ACCEPTED' %}{{ anm.schueler.name }} (P{{ anm.prio }}){% if not forloop.last %}, {% endif %}{% endif %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped border-dark align-middle">
+                <thead class="table-light border-dark">
+                    <tr>
+                        <th scope="col" class="py-2">AG Name</th>
+                        <th scope="col" class="py-2">Leiter</th>
+                        <th scope="col" class="py-2 text-center" style="width: 80px;">Kapazität</th>
+                        <th scope="col" class="py-2 w-25">Teilnehmer (Zugelassen)</th>
+                        <th scope="col" class="py-2 w-25">Warteliste</th>
+                    </tr>
+                </thead>
+                <tbody class="border-dark">
+                    {% for ag in ag_stats %}
+                    <tr style="break-inside: avoid;">
+                        <td class="py-2"><strong class="text-dark">{{ ag.name }}</strong></td>
+                        <td class="py-2">{{ ag.verantwortlicher_name }}</td>
+                        <td class="py-2 text-center">{{ ag.kapazitaet }}</td>
+                        <td class="py-2 small">
+                            {% for anm in ag.anmeldungen.all %}
+                            {% if anm.status == 'ACCEPTED' %}
+                            {{ anm.schueler.name }}
+                            <span class="badge bg-secondary rounded-pill fw-normal">P{{ anm.prio }}</span>
+                            {% if not forloop.last %}, {% endif %}
+                            {% endif %}
+                            {% empty %}
+                            <span class="fst-italic text-secondary">-</span>
+                            {% endfor %}
+                        </td>
+                        <td class="py-2 small">
+                            {% for anm in ag.anmeldungen.all %}
+                            {% if anm.status != 'ACCEPTED' %}
+                            {{ anm.schueler.name }}
+                            <span class="badge bg-secondary rounded-pill fw-normal">P{{ anm.prio }}</span>
+                            {% if not forloop.last %}, {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
                     {% endfor %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                </tbody>
+            </table>
+        </div>
 
-    <div class=footer>
-        Automatisch generiert am {{ date|date:"d.m.Y H:i" }} - AG-Portal Gechingen
+        <div class="mt-4 pt-2 border-top border-secondary text-secondary small text-center">
+            Automatisch generiert am {{ date|date:"d.m.Y H:i" }} - AG-Portal Gechingen
+        </div>
     </div>
 </body>
+
 </html>

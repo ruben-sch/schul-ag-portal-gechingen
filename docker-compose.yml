@@ -14,17 +14,14 @@ services:
       retries: 5
 
   web:
-    # build: .
-    # command: >
-    #   sh -c "python manage.py migrate &&
-    #          python seed_data.py &&
-    #          python manage.py runserver 0.0.0.0:8000"
-    # volumes:
-    #   - .:/app
-    image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:latest
+    build: .
     command: >
-      sh -c "python manage.py migrate --noinput &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+      sh -c "python manage.py migrate &&
+             python seed_data.py &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+
     expose:
       - 8000
     environment:
