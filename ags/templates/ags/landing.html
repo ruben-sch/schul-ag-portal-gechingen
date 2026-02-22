@@ -12,6 +12,7 @@
 </div>
 
 <div class="row g-4 pb-5 justify-content-center">
+    {% if anmeldung_offen %}
     <div class="col-12 col-md-6 col-lg-5">
         <a href="{% url 'register_schueler' %}" class="text-decoration-none h-100 d-block">
             <div class="glass-card p-5 text-center h-100 d-flex flex-column landing-card transition-all">
@@ -24,7 +25,9 @@
             </div>
         </a>
     </div>
+    {% endif %}
 
+    {% if ag_registrierung_offen %}
     <div class="col-12 col-md-6 col-lg-5">
         <a href="{% url 'propose_ag' %}" class="text-decoration-none h-100 d-block">
             <div class="glass-card p-5 text-center h-100 d-flex flex-column landing-card transition-all">
@@ -37,6 +40,18 @@
             </div>
         </a>
     </div>
+    {% endif %}
+
+    {% if not anmeldung_offen and not ag_registrierung_offen %}
+    <div class="col-12 col-lg-8">
+        <div class="glass-card p-5 text-center">
+            <div class="display-3 mb-4">😴</div>
+            <h2 class="text-light mb-3">Derzeit keine Aktionen verfügbar</h2>
+            <p class="lead text-secondary mb-0">Die Anmeldung für Schüler und das Vorschlagen von AGs sind aktuell
+                geschlossen.</p>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 {% endblock %}

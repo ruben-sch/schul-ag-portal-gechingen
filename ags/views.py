@@ -13,9 +13,18 @@ from .utils import run_lottery
 
 
 def landing(request):
-    return render(request, 'ags/landing.html')
+    config = AppConfig.objects.first()
+    return render(request, 'ags/landing.html', {
+        'anmeldung_offen': config.anmeldung_offen if config else False,
+        'ag_registrierung_offen': config.ag_registrierung_offen if config else True
+    })
 
 def propose_ag(request):
+    config = AppConfig.objects.first()
+    if config and not config.ag_registrierung_offen:
+        messages.error(request, "Das Einreichen neuer AGs ist zur Zeit deaktiviert.")
+        return redirect('landing')
+
     if request.method == 'POST':
         form = AGProposalForm(request.POST)
         if form.is_valid():
