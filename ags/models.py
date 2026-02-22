@@ -111,6 +111,7 @@ class ArchivEintrag(models.Model):
 
 class AppConfig(models.Model):
     anmeldung_offen = models.BooleanField(default=False)
+    ag_registrierung_offen = models.BooleanField("AG-Registrierung offen", default=True)
 
     class Meta:
         verbose_name = "Konfiguration"
