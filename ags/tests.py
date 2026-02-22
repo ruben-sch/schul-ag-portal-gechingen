@@ -8,7 +8,10 @@ import sesame.utils
 class AGPortalTest(TestCase):
     def setUp(self):
         # Setup AppConfig
-        AppConfig.objects.create(anmeldung_offen=True)
+        AppConfig.load().save()  # Ensure anmeldung_offen is True by default or set it
+        config = AppConfig.load()
+        config.anmeldung_offen = True
+        config.save()
         
         # Setup AGs
         self.ag1 = AG.objects.create(
