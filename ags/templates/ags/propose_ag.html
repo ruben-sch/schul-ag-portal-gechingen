@@ -3,77 +3,92 @@
 {% block title %}AG Vorschlagen - AG-Portal{% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 800px; margin: 0 auto;">
-    <h1>Neue AG vorschlagen</h1>
-    <p style="color: var(--text-muted); margin-bottom: 2rem;">Fülle das Formular aus, um eine neue AG einzureichen.</p>
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        <div class="glass-card p-4 p-md-5">
+            <h1 class="text-light mb-3">Neue AG vorschlagen</h1>
+            <p class="text-secondary mb-4">Fülle das Formular aus, um eine neue AG einzureichen.</p>
 
-    <form method="post">
-        {% csrf_token %}
-        <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group" style="grid-column: span 2;">
-                <label>{{ form.name.label }}</label>
-                {{ form.name }}
-            </div>
-            <div class="form-group" style="grid-column: span 2;">
-                <label>{{ form.beschreibung.label }}</label>
-                {{ form.beschreibung }}
-            </div>
-            <div class="form-group">
-                <label>{{ form.klassenstufe_min.label }}</label>
-                {{ form.klassenstufe_min }}
-            </div>
-            <div class="form-group">
-                <label>{{ form.klassenstufe_max.label }}</label>
-                {{ form.klassenstufe_max }}
-            </div>
-            <div class="form-group">
-                <label>{{ form.kosten.label }}</label>
-                {{ form.kosten }}
-            </div>
-            <div class="form-group">
-                <label>{{ form.kapazitaet.label }}</label>
-                {{ form.kapazitaet }}
-            </div>
-            <div class="form-group" style="grid-column: span 2;">
-                <label>Termine (Tag, Start- und Endzeit)</label>
-                <div id="termine-container">
-                    <!-- Dynamic entries will go here -->
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label text-secondary">{{ form.name.label }}</label>
+                        {{ form.name }}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label text-secondary">{{ form.beschreibung.label }}</label>
+                        {{ form.beschreibung }}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label text-secondary">{{ form.klassenstufe_min.label }}</label>
+                        {{ form.klassenstufe_min }}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label text-secondary">{{ form.klassenstufe_max.label }}</label>
+                        {{ form.klassenstufe_max }}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label text-secondary">{{ form.kosten.label }}</label>
+                        {{ form.kosten }}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label text-secondary">{{ form.kapazitaet.label }}</label>
+                        {{ form.kapazitaet }}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label text-secondary">Termine (Tag, Start- und Endzeit)</label>
+                        <div id="termine-container" class="mb-2">
+                            <!-- Dynamic entries will go here -->
+                        </div>
+                        <button type="button" class="btn btn-outline-light btn-sm" id="add-termin">
+                            + Termin hinzufügen
+                        </button>
+                        {{ form.termine }}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label text-secondary">{{ form.mitzubringen.label }}</label>
+                        {{ form.mitzubringen }}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label text-secondary">{{ form.hinweise.label }}</label>
+                        {{ form.hinweise }}
+                    </div>
+
+                    <div class="col-12 mt-4 mb-2">
+                        <h3 class="text-light border-bottom border-secondary pb-2">Kontaktperson</h3>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label text-secondary">{{ form.verantwortlicher_name.label }}</label>
+                        {{ form.verantwortlicher_name }}
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label text-secondary">{{ form.verantwortlicher_email.label }}</label>
+                        {{ form.verantwortlicher_email }}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label text-secondary">{{ form.verantwortlicher_telefon.label }}</label>
+                        {{ form.verantwortlicher_telefon }}
+                    </div>
                 </div>
-                <button type="button" class="btn btn-outline" id="add-termin"
-                    style="margin-top: 0.5rem; font-size: 0.8rem; padding: 0.5rem 1rem;">+ Termin hinzufügen</button>
-                {{ form.termine }}
-            </div>
-            <div class="form-group" style="grid-column: span 2;">
-                <label>{{ form.mitzubringen.label }}</label>
-                {{ form.mitzubringen }}
-            </div>
-            <div class="form-group" style="grid-column: span 2;">
-                <label>{{ form.hinweise.label }}</label>
-                {{ form.hinweise }}
-            </div>
 
-            <div style="grid-column: span 2; margin-top: 1rem;">
-                <h3>Kontaktperson</h3>
-            </div>
-
-            <div class="form-group">
-                <label>{{ form.verantwortlicher_name.label }}</label>
-                {{ form.verantwortlicher_name }}
-            </div>
-            <div class="form-group">
-                <label>{{ form.verantwortlicher_email.label }}</label>
-                {{ form.verantwortlicher_email }}
-            </div>
-            <div class="form-group" style="grid-column: span 2;">
-                <label>{{ form.verantwortlicher_telefon.label }}</label>
-                {{ form.verantwortlicher_telefon }}
-            </div>
+                <div class="d-flex justify-content-end mt-5">
+                    <button type="submit" class="btn btn-brand-primary btn-lg px-5">AG einreichen</button>
+                </div>
+            </form>
         </div>
-
-        <div style="margin-top: 2rem; display: flex; justify-content: flex-end;">
-            <button type="submit" class="btn btn-primary">AG einreichen</button>
-        </div>
-    </form>
+    </div>
 </div>
 
 <script>
@@ -96,14 +111,21 @@
 
     function addRow(data = { datum: '', start: '', ende: '' }) {
         const row = document.createElement('div');
-        row.className = 'termin-row';
-        row.style = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem; align-items: center;';
+        row.className = 'termin-row row g-2 mb-2 align-items-center';
         row.innerHTML = `
-            <input type="date" class="datum" value="${data.datum || ''}" style="flex: 2;">
-            <input type="time" class="start" value="${data.start || ''}" style="flex: 1;">
-            <span style="color: var(--text-muted)">bis</span>
-            <input type="time" class="ende" value="${data.ende || ''}" style="flex: 1;">
-            <button type="button" class="btn-remove" style="background: none; border: none; color: var(--error); cursor: pointer; font-size: 1.5rem; padding: 0 0.5rem;">&times;</button>
+            <div class="col-12 col-sm-4">
+                <input type="date" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary datum" value="${data.datum || ''}">
+            </div>
+            <div class="col-5 col-sm-3">
+                <input type="time" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary start" value="${data.start || ''}">
+            </div>
+            <div class="col-auto text-secondary text-center">bis</div>
+            <div class="col-5 col-sm-3">
+                <input type="time" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary ende" value="${data.ende || ''}">
+            </div>
+            <div class="col-auto text-end">
+                <button type="button" class="btn text-danger p-0 fs-4 btn-remove" aria-label="Entfernen">&times;</button>
+            </div>
         `;
 
         row.querySelectorAll('input').forEach(input => {

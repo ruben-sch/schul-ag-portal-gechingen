@@ -3,42 +3,98 @@
 {% block title %}Anmeldung - Schritt 2{% endblock %}
 
 {% block content %}
-<div style="max-width: 800px; margin: 0 auto;">
-    <h1>Verfügbare AGs</h1>
-    <p style="color: var(--text-muted); margin-bottom: 2rem;">Wähle deine Wunsch-AGs für Klasse {{ reg_data.klassenstufe
-        }}. Die Reihenfolge bestimmt deine Priorität.</p>
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-10">
+        <h1 class="text-light mb-2">Verfügbare AGs</h1>
+        <p class="text-secondary mb-4">
+            Wähle deine Wunsch-AGs für Klasse {{ reg_data.klassenstufe }}. Die Reihenfolge bestimmt deine Priorität.
+        </p>
 
-    <form method="post">
-        {% csrf_token %}
-        <div class="grid">
-            {% for ag in ags %}
-            <div class="ag-card">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <h3>{{ ag.name }}</h3>
-                    <input type="checkbox" name="ags" value="{{ ag.id }}" style="width: 24px; height: 24px;">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row g-4">
+                {% for ag in ags %}
+                <div class="col-12 col-md-6 col-xl-4">
+                    <label class="glass-card p-4 h-100 w-100 cursor-pointer ag-select-card"
+                        style="cursor: pointer; display: block; transition: all 0.2s ease;">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h3 class="h5 text-light mb-1">{{ ag.name }}</h3>
+                                <span class="badge bg-primary text-light d-none prio-badge transition-all">Prio 1</span>
+                            </div>
+                            <div class="form-check form-switch fs-4 m-0 ms-2">
+                                <input class="form-check-input mt-0" type="checkbox" name="ags" value="{{ ag.id }}"
+                                    role="switch" style="cursor: pointer;">
+                            </div>
+                        </div>
+                        <p class="text-secondary small mb-3 flex-grow-1">{{ ag.beschreibung|truncatewords:20 }}</p>
+                        <p class="small text-secondary mb-3">
+                            <strong class="text-light">Wann:</strong> {{ ag.get_termine_display }}
+                        </p>
+                        <div class="d-flex flex-wrap gap-2 mt-auto">
+                            <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary">
+                                Kostet: {{ ag.kosten }} €
+                            </span>
+                            <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary">
+                                Leiter: {{ ag.verantwortlicher_name }}
+                            </span>
+                        </div>
+                    </label>
                 </div>
-                <p style="font-size: 0.9rem; margin: 0.5rem 0;">{{ ag.beschreibung|truncatewords:20 }}</p>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0;">
-                    <strong>Wann:</strong> {{ ag.get_termine_display }}
-                </p>
-                <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                    <span class="badge">Kostet: {{ ag.kosten }} €</span>
-                    <span class="badge">Leiter: {{ ag.verantwortlicher_name }}</span>
+                {% empty %}
+                <div class="col-12">
+                    <div class="glass-card p-5 text-center">
+                        <p class="lead text-secondary mb-0">Aktuell sind keine passenden AGs für deine Klassenstufe
+                            freigeschaltet.</p>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
-            {% empty %}
-            <div class="card" style="grid-column: span 2; text-align: center;">
-                <p>Aktuell sind keine passenden AGs für deine Klassenstufe freigeschaltet.</p>
-            </div>
-            {% endfor %}
-        </div>
 
-        {% if ags %}
-        <div style="margin-top: 3rem; display: flex; justify-content: space-between; align-items: center;">
-            <a href="{% url 'register_schueler' %}" class="btn btn-outline">Zurück</a>
-            <button type="submit" class="btn btn-primary">Anmeldung absenden</button>
-        </div>
-        {% endif %}
-    </form>
+            {% if ags %}
+            <div
+                class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top border-secondary border-opacity-25">
+                <a href="{% url 'register_schueler' %}" class="btn btn-outline-light px-4">Zurück</a>
+                <button type="submit" class="btn btn-brand-primary px-4">Anmeldung absenden</button>
+            </div>
+            {% endif %}
+        </form>
+    </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const checkboxes = document.querySelectorAll('.form-check-input');
+        let selectedOrder = [];
+
+        function updatePriorities() {
+            // Unhide all priorities first to reset
+            document.querySelectorAll('.prio-badge').forEach(badge => badge.classList.add('d-none'));
+
+            // Show updated priorities
+            selectedOrder.forEach((checkbox, index) => {
+                const badge = checkbox.closest('.glass-card').querySelector('.prio-badge');
+                if (badge) {
+                    badge.textContent = 'Prio ' + (index + 1);
+                    badge.classList.remove('d-none');
+                    // Add some animation to highlight the change
+                    badge.classList.remove('scale-in');
+                    void badge.offsetWidth; // trigger reflow
+                    badge.classList.add('scale-in');
+                }
+            });
+        }
+
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                if (this.checked) {
+                    selectedOrder.push(this);
+                } else {
+                    selectedOrder = selectedOrder.filter(item => item !== this);
+                }
+                updatePriorities();
+            });
+        });
+    });
+</script>
 {% endblock %}

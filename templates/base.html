@@ -1,258 +1,80 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-bs-theme="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Schul-AG Portal{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #01017a;
-            --primary-hover: #03039d;
-            --bg: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.7);
-            --text: #f8fafc;
-            --text-muted: #94a3b8;
-            --border: rgba(255, 255, 255, 0.1);
-            --success: #22c55e;
-            --error: #ef4444;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background-color: var(--bg);
-            background-image:
-                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
-            color: var(--text);
-            min-height: 100vh;
-            line-height: 1.6;
-        }
-
-        nav {
-            padding: 1.5rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text);
-            text-decoration: none;
-            background: linear-gradient(to right, #818cf8, #c084fc);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .nav-links a {
-            color: var(--text-muted);
-            text-decoration: none;
-            margin-left: 2rem;
-            transition: color 0.2s;
-            font-weight: 500;
-        }
-
-        .nav-links a:hover {
-            color: var(--text);
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 3rem auto;
-            padding: 0 2rem;
-        }
-
-        .card {
-            background: var(--card-bg);
-            backdrop-filter: blur(16px);
-            border: 1px solid var(--border);
-            border-radius: 1.5rem;
-            padding: 2.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-
-        h2 {
-            font-size: 1.8rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.75rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s;
-            cursor: pointer;
-            border: none;
-            font-size: 1rem;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4);
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border);
-            color: var(--text);
-        }
-
-        .btn-outline:hover {
-            background: var(--border);
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        input,
-        textarea,
-        select {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border-radius: 0.75rem;
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid var(--border);
-            color: var(--text);
-            font-family: inherit;
-            font-size: 1rem;
-            transition: border-color 0.2s;
-        }
-
-        input:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .messages {
-            margin-bottom: 2rem;
-        }
-
-        .message {
-            padding: 1rem;
-            border-radius: 0.75rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .message.success {
-            background: rgba(34, 197, 94, 0.2);
-            color: #4ade80;
-            border: 1px solid rgba(34, 197, 94, 0.2);
-        }
-
-        .message.error {
-            background: rgba(239, 68, 68, 0.2);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .ag-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border);
-            padding: 1.5rem;
-            border-radius: 1rem;
-            transition: transform 0.2s;
-        }
-
-        .ag-card:hover {
-            transform: scale(1.02);
-            border-color: var(--primary);
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            background: var(--border);
-            margin-right: 0.5rem;
-        }
-
-        footer {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-    </style>
+    <!-- Custom Theme CSS -->
+    <link href="{% static 'css/theme.css' %}" rel="stylesheet">
 </head>
 
 <body>
-    <nav>
-        <a href="{% url 'landing' %}" class="logo" style="display: flex; align-items: center; gap: 1rem;">
-            <img src="https://www.schlehengaeuschule.de/media/2024/02/logo_sgs_bunt_340x156.png" alt="Logo"
-                style="height: 40px; background: white; border-radius: 4px; padding: 2px;">
-            <span>Schlehengäuschule Gechingen</span>
-        </a>
-        <div class="nav-links">
-            <a href="{% url 'propose_ag' %}">AG vorschlagen</a>
-            <a href="{% url 'register_schueler' %}">Anmeldung</a>
-            {% if user.is_authenticated %}
-            <a href="{% url 'dashboard' %}" class="btn btn-outline">Dashboard</a>
-            {% else %}
-            <a href="{% url 'login' %}" class="btn btn-outline">Login</a>
-            {% endif %}
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top custom-navbar py-3">
+        <div class="container-fluid px-4 px-md-5">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'landing' %}">
+                <img src="https://www.schlehengaeuschule.de/media/2024/02/logo_sgs_bunt_340x156.png" alt="Logo"
+                    style="height: 40px; background: white; border-radius: 4px; padding: 2px;">
+                <span class="navbar-brand-text d-none d-sm-inline">Schlehengäuschule Gechingen</span>
+                <span class="navbar-brand-text d-inline d-sm-none">SGS Gechingen</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-lg-center">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'propose_ag' %}">AG vorschlagen</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'register_schueler' %}">Anmeldung</a>
+                    </li>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item ms-lg-3 mt-3 mt-lg-0">
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-light w-100 w-lg-auto">Dashboard</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item ms-lg-3 mt-3 mt-lg-0">
+                        <a href="{% url 'login' %}" class="btn btn-outline-light w-100 w-lg-auto">Login</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
         </div>
     </nav>
 
-    <div class="container">
+    <main class="container py-5">
         {% if messages %}
-        <div class="messages">
+        <div class="mb-4">
             {% for message in messages %}
-            <div class="message {{ message.tags }}">{{ message }}</div>
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% elif message.tags == 'success' %}success{% else %}info{% endif %} alert-dismissible fade show"
+                role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
             {% endfor %}
         </div>
         {% endif %}
 
         {% block content %}{% endblock %}
-    </div>
+    </main>
 
-    <footer>
-        &copy; 2026 Open-Source AG-Verwaltungsportal. Portabel & Sicher.
+    <footer class="text-center py-5 text-secondary">
+        <small>&copy; 2026 Open-Source AG-Verwaltungsportal. Portabel & Sicher.</small>
     </footer>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmxc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
 </body>
 
 </html>

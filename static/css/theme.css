@@ -1,0 +1,127 @@
+/*
+ * Theme Configuration
+ * This file contains custom styling overrides for the Schul-AG Portal theme
+ * to work alongside Bootstrap 5.
+ */
+
+:root {
+    /* Main typography setting using the Outfit font */
+    --bs-body-font-family: 'Outfit', sans-serif;
+
+    /* Primary brand colors */
+    --primary: #01017a;
+    --primary-hover: #03039d;
+
+    /* Card background with transparency for glassmorphism effect */
+    --card-bg: rgba(30, 41, 59, 0.7);
+}
+
+/* Base Body Styles */
+body {
+    /* Add subtle gradients in the background for a modern look */
+    background-image:
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
+
+    /* Ensure the body stretches to the full viewport height */
+    min-height: 100vh;
+}
+
+/*
+ * Navigation Bar Styling
+ */
+.navbar-brand-text {
+    /* Gradient text effect for the brand name */
+    background: linear-gradient(to right, #818cf8, #c084fc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700;
+}
+
+.custom-navbar {
+    /* Glassmorphism blur effect for the sticky navbar */
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/*
+ * Reusable Components
+ */
+.glass-card {
+    /* Translucent background for cards based on dark mode context */
+    background: var(--card-bg);
+    /* Blur effect behind the card */
+    backdrop-filter: blur(16px);
+    /* Subtle border for structure */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
+    /* Soft shadow to elevate the card */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* Custom Primary Button based on brand colors */
+.btn-brand-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+}
+
+.btn-brand-primary:hover {
+    background: var(--primary-hover);
+    color: white;
+    /* Lift up effect on hover */
+    transform: translateY(-2px);
+    /* Glow shadow effect on hover */
+    box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4);
+}
+
+/*
+ * Helper Classes & Animations
+ */
+.transition-all {
+    /* Smooth transition for all properties, used on interactive cards */
+    transition: all 0.3s ease;
+}
+
+/* Landing Page Card Hover Effect */
+.landing-card:hover {
+    /* Lift card up */
+    transform: translateY(-10px);
+    /* Slightly lighter background overlay */
+    background: rgba(255, 255, 255, 0.05);
+    /* Brand border color to highlight selection */
+    border-color: var(--primary) !important;
+    /* Enhanced glow shadow on hover */
+    box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.2);
+}
+
+/* Registration Select Card Hover Effect */
+.ag-select-card:hover {
+    /* Slight lift */
+    transform: translateY(-5px);
+    border-color: var(--primary) !important;
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.3);
+}
+
+/* Form Switch override to use brand color */
+.form-check-input:checked {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+@keyframes scaleIn {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.scale-in {
+    animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}

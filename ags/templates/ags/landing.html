@@ -1,43 +1,42 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div style="text-align: center; margin-bottom: 4rem;">
-    <h1
-        style="font-size: 3.5rem; background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
-        Willkommen an der Schlehengäuschule</h1>
-    <p style="font-size: 1.25rem; color: var(--text-muted); max-width: 600px; margin: 0 auto;">
+<div class="text-center mb-5 mt-4">
+    <h1 class="display-3 fw-bold mb-3"
+        style="background: linear-gradient(to right, #fff, #94a3b8); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+        Willkommen an der Schlehengäuschule
+    </h1>
+    <p class="lead text-secondary mx-auto" style="max-width: 600px;">
         Wähle dein Ziel aus, um fortzufahren.
     </p>
 </div>
 
-<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 2rem; padding-bottom: 4rem;">
-    <a href="{% url 'register_schueler' %}" class="card"
-        style="text-decoration: none; text-align: center; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.1);">
-        <div style="font-size: 4rem; margin-bottom: 1.5rem;">🎓</div>
-        <h2 style="color: var(--text); margin-bottom: 1rem;">Schüler-Anmeldung</h2>
-        <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem;">
-            Entdecke spannende AGs für deine Klasse und melde dich für das neue Halbjahr an.
-        </p>
-        <span class="btn btn-primary" style="width: 100%;">Jetzt Anmelden</span>
-    </a>
+<div class="row g-4 pb-5 justify-content-center">
+    <div class="col-12 col-md-6 col-lg-5">
+        <a href="{% url 'register_schueler' %}" class="text-decoration-none h-100 d-block">
+            <div class="glass-card p-5 text-center h-100 d-flex flex-column landing-card transition-all">
+                <div class="display-1 mb-4">🎓</div>
+                <h2 class="text-light mb-3">Schüler-Anmeldung</h2>
+                <p class="text-secondary mb-4 flex-grow-1">
+                    Entdecke spannende AGs für deine Klasse und melde dich für das neue Halbjahr an.
+                </p>
+                <div class="btn btn-brand-primary btn-lg w-100 rounded-3">Jetzt Anmelden</div>
+            </div>
+        </a>
+    </div>
 
-    <a href="{% url 'propose_ag' %}" class="card"
-        style="text-decoration: none; text-align: center; transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.1);">
-        <div style="font-size: 4rem; margin-bottom: 1.5rem;">💡</div>
-        <h2 style="color: var(--text); margin-bottom: 1rem;">AG vorschlagen</h2>
-        <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem;">
-            Du bist Lehrer oder Leiter? Reiche hier deinen Vorschlag für eine neue AG ein.
-        </p>
-        <span class="btn btn-outline" style="width: 100%;">Vorschlag einreichen</span>
-    </a>
+    <div class="col-12 col-md-6 col-lg-5">
+        <a href="{% url 'propose_ag' %}" class="text-decoration-none h-100 d-block">
+            <div class="glass-card p-5 text-center h-100 d-flex flex-column landing-card transition-all">
+                <div class="display-1 mb-4">💡</div>
+                <h2 class="text-light mb-3">AG vorschlagen</h2>
+                <p class="text-secondary mb-4 flex-grow-1">
+                    Du bist Lehrer oder Leiter? Reiche hier deinen Vorschlag für eine neue AG ein.
+                </p>
+                <div class="btn btn-outline-light btn-lg w-100 rounded-3">Vorschlag einreichen</div>
+            </div>
+        </a>
+    </div>
 </div>
 
-<style>
-    .card:hover {
-        transform: translateY(-10px);
-        background: rgba(255, 255, 255, 0.05);
-        border-color: var(--primary) !important;
-        box-shadow: 0 20px 40px -10px rgba(99, 102, 241, 0.2);
-    }
-</style>
 {% endblock %}
