@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.core.mail import send_mail
 from django.urls import reverse
 from django.conf import settings
 from datetime import datetime
@@ -293,3 +294,24 @@ def stats_export(request):
         'total_schueler': total_schueler,
         'date': datetime.now()
     })
+
+@user_passes_test(lambda u: u.is_staff)
+def test_email(request):
+    try:
+        user_email = request.user.email
+        if not user_email:
+            messages.error(request, "Dein Benutzerkonto hat keine E-Mail-Adresse hinterlegt.")
+            return redirect('stats_dashboard')
+            
+        send_mail(
+            subject='Geplante Test-E-Mail (AG-Portal)',
+            message=f'Hallo {request.user.first_name},\n\ndies ist eine Test-E-Mail aus dem AG-Portal. Wenn diese Nachricht ankommt, ist der E-Mail-Versand korrekt konfiguriert.\n\nViele Grüße,\nDein AG-Portal System',
+            from_email=None,  # Uses DEFAULT_FROM_EMAIL
+            recipient_list=[user_email],
+            fail_silently=False,
+        )
+        messages.success(request, f"Test-E-Mail wurde erfolgreich an {user_email} (oder an die Konsole) versendet.")
+    except Exception as e:
+        messages.error(request, f"Fehler beim E-Mail-Versand: {str(e)}")
+        
+    return redirect('stats_dashboard')
