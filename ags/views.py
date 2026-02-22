@@ -315,3 +315,6 @@ def test_email(request):
         messages.error(request, f"Fehler beim E-Mail-Versand: {str(e)}")
         
     return redirect('stats_dashboard')
+
+def impressum(request):
+    return render(request, 'ags/impressum.html')
