@@ -103,6 +103,7 @@ Damit das Deployment und der E-Mail-Versand funktionieren, müssen im GitHub Rep
 | `SECRET_KEY` | Ein sicherer Django Secret Key |
 | `POSTGRES_PASSWORD` | Passwort für die PostgreSQL Datenbank |
 | `ALLOWED_HOSTS` | Kommagetrennte Liste der Domains, z.B. `schul-ag.schwarzpost.de,schul-ag.foerderverein-sgs-gechingen.de` |
+| `CSRF_TRUSTED_ORIGINS` | Kommagetrennte Liste der vertrauenswürdigen Origins, z.B. `https://schul-ag.schwarzpost.de` |
 | `SMTP_HOST` | Host für Resend: `smtp.resend.com` |
 | `SMTP_USER` | Der Wert `resend` |
 | `SMTP_PASSWORD` | Dein Resend API-Key (beginnt mit `re_...`) |
