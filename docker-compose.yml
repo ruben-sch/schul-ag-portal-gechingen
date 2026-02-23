@@ -31,6 +31,7 @@ services:
       - ALLOWED_HOSTS=localhost,127.0.0.1,web.localhost,web
       - EMAIL_URL=smtp://mailpit:1025
       - BASE_URL=http://web:8000
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-webmaster@localhost}
     labels:
       - traefik.enable=true
       - traefik.http.routers.web.rule=Host(`web.localhost`)
