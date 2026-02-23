@@ -8,6 +8,7 @@ from datetime import datetime
 from django.db.models import Count, Sum, Min, Max, Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from sesame.utils import get_query_string
+from .forms import AGProposalForm, SchuelerFirstStepForm, LoginForm
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig
 from .forms import AGProposalForm, SchuelerFirstStepForm, LoginForm
 from .utils import run_lottery
