@@ -48,8 +48,10 @@ services:
       - DATABASE_URL=postgres://${POSTGRES_USER:-ag_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-ag_portal}
       - SECRET_KEY=${SECRET_KEY}
       - DEBUG=False
-      - ALLOWED_HOSTS=schul-ag.schwarzpost.de,localhost,127.0.0.1
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-schul-ag.schwarzpost.de,localhost,127.0.0.1}
       - EMAIL_URL=smtp+tls://${SMTP_USER}:${SMTP_PASSWORD}@${SMTP_HOST}:${SMTP_PORT:-587}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ag-portal.rule=Host(`schul-ag.schwarzpost.de`)"
