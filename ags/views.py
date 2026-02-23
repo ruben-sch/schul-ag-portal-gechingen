@@ -8,9 +8,10 @@ from datetime import datetime
 from django.db.models import Count, Sum, Min, Max, Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from sesame.utils import get_query_string
-from .forms import AGProposalForm, SchuelerFirstStepForm, LoginForm
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig
+from .forms import AGProposalForm, SchuelerFirstStepForm, LoginForm
 from .utils import run_lottery
+from . import services
 
 
 def landing(request):
@@ -68,53 +69,28 @@ def select_ags(request):
         return redirect('register_schueler')
     
     klasse = reg_data['klassenstufe']
-    available_ags = AG.objects.filter(
-        status='APPROVED',
-        klassenstufe_min__lte=klasse,
-        klassenstufe_max__gte=klasse
-    )
+    available_ags = services.get_available_ags_for_student(klasse)
     
     if request.method == 'POST':
         selected_ag_ids = request.POST.getlist('ags')
         
-        # Validation: Ensure all selected AGs are actually valid for this student's grade
-        available_ids = [str(ag.id) for ag in available_ags]
-        valid_selections = [ag_id for ag_id in selected_ag_ids if ag_id in available_ids]
-        
-        if not valid_selections:
+        if not selected_ag_ids:
             messages.error(request, "Bitte wähle mindestens eine gültige AG aus.")
         else:
-            if len(valid_selections) != len(selected_ag_ids):
+            # Create/Get user and profile
+            email = reg_data['email']
+            user, _ = User.objects.get_or_create(username=email, defaults={'email': email})
+            
+            profile = services.register_or_update_student(
+                user, reg_data['name'], klasse, reg_data.get('notfall_telefon', '')
+            )
+            
+            # Save selections
+            all_valid = services.update_student_registrations(profile, selected_ag_ids)
+            
+            if not all_valid:
                 messages.warning(request, "Einige gewählte AGs waren nicht für deine Klassenstufe zugelassen und wurden ignoriert.")
 
-            # Create user if not exists or get existing
-            email = reg_data['email']
-            user, created = User.objects.get_or_create(
-                username=email,
-                defaults={'email': email}
-            )
-            
-            # Identify student by name AND user (email) to allow siblings
-            student_name = reg_data['name']
-            profile, _ = SchuelerProfile.objects.get_or_create(
-                user=user,
-                name=student_name,
-                defaults={
-                    'klassenstufe': klasse,
-                    'notfall_telefon': reg_data.get('notfall_telefon', '')
-                }
-            )
-            # Ensure details are updated
-            profile.klassenstufe = klasse
-            profile.notfall_telefon = reg_data.get('notfall_telefon', '')
-            profile.save()
-            
-            # Save selections for this specific profile
-            Anmeldung.objects.filter(schueler=profile).delete()
-            for i, ag_id in enumerate(valid_selections):
-                ag = AG.objects.get(id=ag_id)
-                Anmeldung.objects.create(schueler=profile, ag=ag, prio=i+1)
-            
             del request.session['reg_data']
             messages.success(request, "Anmeldung erfolgreich gespeichert!")
             return redirect('landing')
@@ -147,101 +123,28 @@ def request_magic_link(request):
 
 @login_required
 def dashboard(request):
-    # Determine if user is schueler and/or leiter
-    # For students: Get all registrations for all profiles linked to this user
-    profiles = SchuelerProfile.objects.filter(user=request.user)
-    anmeldungen = Anmeldung.objects.filter(schueler__in=profiles).select_related('ag', 'schueler')
-    
-    # Check if user is a verantwortlicher for any AGs
-    managed_ags = AG.objects.filter(verantwortlicher_email=request.user.email).prefetch_related(
-        'anmeldungen__schueler'
-    )
-    
-    # Prepare data in python to avoid template tag issues
-    for ag in managed_ags:
-        ag.accepted_display = []
-        ag.waiting_display = []
-        anm_all = list(ag.anmeldungen.all())
-        ag.total_count = len(anm_all)
-        
-        for reg in anm_all:
-            profile = reg.schueler
-            klasse = profile.klassenstufe
-            phone = profile.notfall_telefon
-            email = profile.user.email
-            name = profile.name
-            
-            info_str = f"{name} (Klasse {klasse}) - {email} - Notfall: {phone}"
-            
-            if reg.status == 'ACCEPTED':
-                ag.accepted_display.append(info_str)
-            else:
-                ag.waiting_display.append(f"{info_str} [Prio {reg.prio}]")
+    anmeldungen = services.get_student_dashboard_data(request.user)
+    managed_ags = services.get_managed_ags_data(request.user)
+    is_parent = SchuelerProfile.objects.filter(user=request.user).exists()
     
     return render(request, 'ags/dashboard.html', {
         'anmeldungen': anmeldungen,
         'managed_ags': managed_ags,
-        'is_parent': profiles.exists()
+        'is_parent': is_parent
     })
 
 @user_passes_test(lambda u: u.is_staff)
 def stats_dashboard(request):
-    total_schueler = SchuelerProfile.objects.count()
-    total_anmeldungen = Anmeldung.objects.count()
-    total_slots = AG.objects.filter(status='APPROVED').aggregate(Sum('kapazitaet'))['kapazitaet__sum'] or 0
-    total_accepted = Anmeldung.objects.filter(status='ACCEPTED').count()
-    
-    # Calculate min/max accepted AGs per student profile
-    profile_stats = SchuelerProfile.objects.annotate(
-        accepted_count=Count('anmeldungen', filter=Q(anmeldungen__status='ACCEPTED'))
-    ).aggregate(
-        min_ags=Min('accepted_count'),
-        max_ags=Max('accepted_count')
-    )
-    
-    # Per AG stats with lists
-    ag_stats = AG.objects.filter(status='APPROVED').annotate(
-        reg_count=Count('anmeldungen'),
-        acc_count=Count('anmeldungen', filter=Q(anmeldungen__status='ACCEPTED'))
-    ).prefetch_related('anmeldungen__schueler')
+    stats = services.get_portal_stats()
     
     # Per Student stats
     search_query = request.GET.get('student_search', '')
     min_ag_filter = request.GET.get('min_ags', '')
     
-    students = SchuelerProfile.objects.annotate(
-        accepted_count=Count('anmeldungen', filter=Q(anmeldungen__status='ACCEPTED'))
-    ).prefetch_related('anmeldungen__ag').order_by('name')
-    
-    if search_query:
-        students = students.filter(name__icontains=search_query)
-    
-    if min_ag_filter:
-        try:
-            students = students.filter(accepted_count__gte=int(min_ag_filter))
-        except ValueError:
-            pass
-
-    # Calculate percentages and prepare display lists
-    for ag in ag_stats:
-        ag.reg_percent = int(ag.reg_count * 100 / ag.kapazitaet) if ag.kapazitaet > 0 else 0
-        ag.acc_percent = int(ag.acc_count * 100 / ag.kapazitaet) if ag.kapazitaet > 0 else 0
-        ag.reg_percent_clamped = min(ag.reg_percent, 100)
-        
-        # Sort and prepare participants
-        anm_list = list(ag.anmeldungen.all())
-        ag.accepted_list = [a for a in anm_list if a.status == 'ACCEPTED']
-        ag.waiting_list = [a for a in anm_list if a.status != 'ACCEPTED']
-        ag.waiting_list.sort(key=lambda x: x.prio)
+    students = services.get_students_with_stats(search_query, min_ag_filter)
 
     return render(request, 'ags/stats.html', {
-        'total_schueler': total_schueler,
-        'total_anmeldungen': total_anmeldungen,
-        'total_slots': total_slots,
-        'total_accepted': total_accepted,
-        'min_ags': profile_stats['min_ags'] or 0,
-        'max_ags': profile_stats['max_ags'] or 0,
-        'ag_stats': ag_stats,
+        **stats,
         'students': students,
         'search_query': search_query,
         'min_ag_filter': min_ag_filter
@@ -282,16 +185,10 @@ def manual_intervention(request):
 @user_passes_test(lambda u: u.is_staff)
 def stats_export(request):
     # This view is optimized for printing
-    ag_stats = AG.objects.filter(status='APPROVED').annotate(
-        reg_count=Count('anmeldungen'),
-        acc_count=Count('anmeldungen', filter=Q(anmeldungen__status='ACCEPTED'))
-    ).prefetch_related('anmeldungen__schueler')
-    
-    total_schueler = SchuelerProfile.objects.count()
+    stats = services.get_portal_stats()
     
     return render(request, 'ags/stats_export.html', {
-        'ag_stats': ag_stats,
-        'total_schueler': total_schueler,
+        **stats,
         'date': datetime.now()
     })
 
