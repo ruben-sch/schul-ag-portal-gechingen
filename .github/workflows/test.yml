@@ -9,9 +9,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     
     services:
       postgres:
@@ -40,7 +37,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install flake8 bandit coverage anybadge
+        pip install flake8 bandit
         
     - name: Run Linting
       run: |
@@ -57,23 +54,4 @@ jobs:
         SECRET_KEY: testing-secret-key
         DEBUG: "True"
       run: |
-        coverage run manage.py test ags
-
-    - name: Generate Coverage Badge
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: |
-        mkdir -p coverage_out
-        COVERAGE=$(coverage report | awk '/TOTAL/ {print $4}' | tr -d '%')
-        anybadge --label=coverage --value=$COVERAGE --file=coverage_out/coverage.svg coverage=50:red 60:orange 80:yellowgreen 100:green
-
-    - name: Push Badge to badges branch
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: |
-        git config --global user.name 'github-actions[bot]'
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git checkout --orphan badges
-        git rm -rf .
-        mv coverage_out/coverage.svg .
-        git add coverage.svg
-        git commit -m "Update coverage badge" || true
-        git push origin HEAD:badges --force
+        python manage.py test ags
