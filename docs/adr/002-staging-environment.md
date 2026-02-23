@@ -1,7 +1,7 @@
 # ADR 002: Konzept für Staging-Umgebung
 
 ## Status
-PROPOSED
+APPROVED
 
 ## Context
 Um neue Features vor dem Release auf einem Server realistisch testen zu können, ohne die Produktionsdaten zu gefährden, wird eine Staging-Umgebung benötigt (Issue #27). Diese Umgebung soll die Architektur der Produktionsumgebung exakt abbilden und automatisiert aus der Pipeline deployed werden.
@@ -21,7 +21,7 @@ Wir führen eine mandantenfähige Architektur auf Instanzebene (Container) ein, 
 
 ### 3. Zugriffsschutz (Security)
 *   Die Staging-Umgebung darf nicht von der Öffentlichkeit oder Suchmaschinen erreicht werden.
-*   Analog zum existierenden Traefik-Dashboard wird der Staging-Web-Container durch eine **Basic Authentication Middleware** in Traefik geschützt. Ohne Benutzername und Passwort ist der Zugriff auf die Applikation blockiert.
+*   Analog zum existierenden Traefik-Dashboard wird der Staging-Web-Container durch eine **Basic Authentication Middleware** in Traefik geschützt. Hierbei werden **dieselben Basic Auth Credentials** verwendet, die bereits für das Traefik-Dashboard konfiguriert sind. Ohne Benutzername und Passwort ist der Zugriff auf die Applikation blockiert.
 
 ### 4. CI/CD Deployment-Pipeline
 Die Deployment-Strategie in GitHub Actions wird in zwei getrennte Trigger aufgeteilt, um Kontrolle zu gewährleisten:

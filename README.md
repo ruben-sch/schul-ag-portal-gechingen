@@ -126,6 +126,8 @@ Folge danach den Anweisungen im Terminal, um Benutzername, E-Mail und Passwort f
 Das Projekt verfügt über vollautomatisierte Workflows (`.github/workflows/`):
 
 1.  **Tests & Linting (`test.yml`)**: Läuft bei jedem Push/Pull Request. Führt Unittests, Flake8 (Syntax) und Bandit (Sicherheit) aus.
-2.  **Deployment (`deploy-hetzner.yml`)**: Deployed die App automatisch auf Ihren Hetzner VPS, wenn auf `main` gepusht wird.
+2.  **Deployment (`deploy-hetzner.yml`)**: Deployed die App automatisch auf den Hetzner VPS:
+    - **Staging Umgebung:** Ein Push auf `main` deployed automatisch eine Staging-Instanz (getrennte Container, eigene Sub-Subdomain `staging`). Diese ist durch **Traefik Basic Auth** geschützt (gleiche Zugangsdaten wie für das Traefik-Dashboard).
+    - **Produktions Umgebung:** Ein Deployment für Produktion wird **ausschließlich** durch die Erstellung eines neuen GitHub Releases (Tags) ausgelöst.
 3.  **CodeQL**: Erweitere Sicherheitsanalyse durch GitHub.
 4.  **Dependabot**: Prüft wöchentlich auf veraltete Abhängigkeiten.
