@@ -1,6 +1,6 @@
 # AG-Verwaltungsportal Schlehengäuschule Gechingen
 
-![Coverage](coverage.svg)
+![Coverage](https://raw.githubusercontent.com/ruben-sch/schul-ag-portal-gechingen/badges/coverage.svg)
 
 Dieses Portal dient der effizienten Verwaltung, Anmeldung und automatisierten Zuteilung von Arbeitsgemeinschaften (AGs). Es bietet Schnittstellen für AG-Leiter, Eltern/Schüler und Administratoren.
 
