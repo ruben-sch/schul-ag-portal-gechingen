@@ -62,6 +62,48 @@ services:
         condition: service_healthy
     restart: always
 
+  db-staging:
+    image: postgres:15
+    volumes:
+      - postgres_data_staging:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-ag_portal}
+      - POSTGRES_USER=${POSTGRES_USER:-ag_user}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-ag_user} -d $${POSTGRES_DB:-ag_portal}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  web-staging:
+    image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:staging
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+    expose:
+      - "8000"
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-ag_user}:${POSTGRES_PASSWORD}@db-staging:5432/${POSTGRES_DB:-ag_portal}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=False
+      - ALLOWED_HOSTS=staging.schul-ag.schwarzpost.de,localhost,127.0.0.1
+      - EMAIL_URL=smtp+tls://${SMTP_USER}:${SMTP_PASSWORD}@${SMTP_HOST}:${SMTP_PORT:-587}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
+      - CSRF_TRUSTED_ORIGINS=https://staging.schul-ag.schwarzpost.de
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.staging-portal.rule=Host(`staging.schul-ag.schwarzpost.de`)"
+      - "traefik.http.routers.staging-portal.tls=true"
+      - "traefik.http.routers.staging-portal.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.staging-portal.middlewares=auth"
+    depends_on:
+      db-staging:
+        condition: service_healthy
+    restart: always
+
 volumes:
   postgres_data_prod:
+  postgres_data_staging:
   traefik-public-certificates:

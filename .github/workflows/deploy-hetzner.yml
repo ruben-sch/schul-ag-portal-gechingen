@@ -3,6 +3,8 @@ name: Deploy to Hetzner
 on:
   push:
     branches: [ main ]
+  release:
+    types: [published]
   workflow_dispatch:
 
 env:
@@ -44,7 +46,8 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=sha
-            latest
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
