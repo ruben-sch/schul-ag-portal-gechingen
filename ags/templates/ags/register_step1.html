@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
 
 {% block title %}Anmeldung - Schritt 1{% endblock %}
 
@@ -11,17 +12,8 @@
 
             <form method="post">
                 {% csrf_token %}
-                <div class="row g-3">
-                    {% for field in form %}
-                    <div class="col-12">
-                        <label for="{{ field.id_for_label }}" 
-                        class="form-label text-secondary">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}
-                        <div class="text-danger mt-1 small">{{ field.errors.0 }}</div>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
+                <div class="row g-3 text-secondary">
+                    {{ form|crispy }}
                 </div>
 
                 <div class="mt-5">
