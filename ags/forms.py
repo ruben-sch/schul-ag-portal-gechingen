@@ -20,7 +20,7 @@ class AGProposalForm(BootstrapFormMixin, forms.ModelForm):
         fields = [
             'name', 'beschreibung', 'kosten', 
             'klassenstufe_min', 'klassenstufe_max', 
-            'kapazitaet', 'termine', 'mitzubringen', 'hinweise',
+            'kapazitaet', 'ort', 'termine', 'mitzubringen', 'hinweise',
             'verantwortlicher_name', 'verantwortlicher_email', 'verantwortlicher_telefon'
         ]
         widgets = {
@@ -37,6 +37,7 @@ class AGProposalForm(BootstrapFormMixin, forms.ModelForm):
             'kapazitaet': 'Maximale Teilnehmerzahl',
             'klassenstufe_min': 'Klassenstufe (min)',
             'klassenstufe_max': 'Klassenstufe (max)',
+            'ort': 'Ort / Räumlichkeit',
         }
 
 class SchuelerFirstStepForm(BootstrapFormMixin, forms.Form):
