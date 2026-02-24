@@ -38,6 +38,14 @@
                     </div>
 
                     <div class="col-12">
+                        <label class="form-label text-secondary">{{ form.ort.label }}</label>
+                        {{ form.ort }}
+                        {% if form.ort.help_text %}
+                        <div class="form-text text-secondary">{{ form.ort.help_text }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-12">
                         <label class="form-label text-secondary">Termine (Tag, Start- und Endzeit)</label>
                         <div id="termine-container" class="mb-2">
                             <!-- Dynamic entries will go here -->
