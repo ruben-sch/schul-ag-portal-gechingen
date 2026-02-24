@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load crispy_forms_tags %}
 
 {% block title %}AG Vorschlagen - AG-Portal{% endblock %}
 
@@ -12,34 +13,28 @@
             <form method="post">
                 {% csrf_token %}
                 <div class="row g-3">
-                    <div class="col-12">
-                        <label class="form-label text-secondary">{{ form.name.label }}</label>
-                        {{ form.name }}
+                    <div class="col-12 text-secondary">
+                        {{ form.name|as_crispy_field }}
                     </div>
 
-                    <div class="col-12">
-                        <label class="form-label text-secondary">{{ form.beschreibung.label }}</label>
-                        {{ form.beschreibung }}
+                    <div class="col-12 text-secondary">
+                        {{ form.beschreibung|as_crispy_field }}
                     </div>
 
-                    <div class="col-12 col-md-6">
-                        <label class="form-label text-secondary">{{ form.klassenstufe_min.label }}</label>
-                        {{ form.klassenstufe_min }}
+                    <div class="col-12 col-md-6 text-secondary">
+                        {{ form.klassenstufe_min|as_crispy_field }}
                     </div>
 
-                    <div class="col-12 col-md-6">
-                        <label class="form-label text-secondary">{{ form.klassenstufe_max.label }}</label>
-                        {{ form.klassenstufe_max }}
+                    <div class="col-12 col-md-6 text-secondary">
+                        {{ form.klassenstufe_max|as_crispy_field }}
                     </div>
 
-                    <div class="col-12 col-md-6">
-                        <label class="form-label text-secondary">{{ form.kosten.label }}</label>
-                        {{ form.kosten }}
+                    <div class="col-12 col-md-6 text-secondary">
+                        {{ form.kosten|as_crispy_field }}
                     </div>
 
-                    <div class="col-12 col-md-6">
-                        <label class="form-label text-secondary">{{ form.kapazitaet.label }}</label>
-                        {{ form.kapazitaet }}
+                    <div class="col-12 col-md-6 text-secondary">
+                        {{ form.kapazitaet|as_crispy_field }}
                     </div>
 
                     <div class="col-12">
@@ -53,33 +48,28 @@
                         {{ form.termine }}
                     </div>
 
-                    <div class="col-12">
-                        <label class="form-label text-secondary">{{ form.mitzubringen.label }}</label>
-                        {{ form.mitzubringen }}
+                    <div class="col-12 text-secondary">
+                        {{ form.mitzubringen|as_crispy_field }}
                     </div>
 
-                    <div class="col-12">
-                        <label class="form-label text-secondary">{{ form.hinweise.label }}</label>
-                        {{ form.hinweise }}
+                    <div class="col-12 text-secondary">
+                        {{ form.hinweise|as_crispy_field }}
                     </div>
 
                     <div class="col-12 mt-4 mb-2">
                         <h3 class="text-light border-bottom border-secondary pb-2">Kontaktperson</h3>
                     </div>
 
-                    <div class="col-12 col-md-6">
-                        <label class="form-label text-secondary">{{ form.verantwortlicher_name.label }}</label>
-                        {{ form.verantwortlicher_name }}
+                    <div class="col-12 col-md-6 text-secondary">
+                        {{ form.verantwortlicher_name|as_crispy_field }}
                     </div>
 
-                    <div class="col-12 col-md-6">
-                        <label class="form-label text-secondary">{{ form.verantwortlicher_email.label }}</label>
-                        {{ form.verantwortlicher_email }}
+                    <div class="col-12 col-md-6 text-secondary">
+                        {{ form.verantwortlicher_email|as_crispy_field }}
                     </div>
 
-                    <div class="col-12">
-                        <label class="form-label text-secondary">{{ form.verantwortlicher_telefon.label }}</label>
-                        {{ form.verantwortlicher_telefon }}
+                    <div class="col-12 text-secondary">
+                        {{ form.verantwortlicher_telefon|as_crispy_field }}
                     </div>
                 </div>
 

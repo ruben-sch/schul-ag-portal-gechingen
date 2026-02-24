@@ -7,3 +7,5 @@ whitenoise
 python-dotenv
 requests
 beautifulsoup4
+django-crispy-forms
+crispy-bootstrap5
