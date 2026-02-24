@@ -60,8 +60,7 @@ class AGAdmin(admin.ModelAdmin):
         )
         
         link = reverse('dashboard') + get_query_string(user)
-        full_url = f"http://localhost:8000{link}"
-        return format_html('<a href="{}" target="_blank">Leiter Login</a>', full_url)
+        return format_html('<a href="{}" target="_blank">Leiter Login</a>', link)
     
     leader_magic_link.short_description = 'Leiter Magic Link'
 
@@ -78,8 +77,7 @@ class SchuelerProfileAdmin(admin.ModelAdmin):
 
     def magic_link_display(self, obj):
         link = reverse('dashboard') + get_query_string(obj.user)
-        full_url = f"http://localhost:8000{link}"
-        return format_html('<a href="{}" target="_blank">Login Link</a>', full_url)
+        return format_html('<a href="{}" target="_blank">Login Link</a>', link)
     
     magic_link_display.short_description = 'Magic Link'
 
