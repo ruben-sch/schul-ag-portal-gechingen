@@ -45,17 +45,13 @@ class EmailTest(TestCase):
         self.assertEqual(len(leader_mail.attachments), 1)
         attachment = leader_mail.attachments[0]
         
-        # Name should be Abrechnung_Roboter AG.csv
+        # Name should be Abrechnung_Roboter AG.pdf
         self.assertIn('Abrechnung', attachment[0])
-        self.assertTrue(attachment[0].endswith('.csv'))
+        self.assertTrue(attachment[0].endswith('.pdf'))
         
-        # Content should have the required columns
-        # Einnahmen Teilnehmergebühren, Ausgaben (mehrere Zeilen), Summe
+        # Verify MIME type
+        self.assertEqual(attachment[2], 'application/pdf')
+        
+        # Verify content has PDF magic bytes
         content = attachment[1]
-        # Should be a string or bytes
-        if isinstance(content, bytes):
-            content = content.decode('utf-8')
-            
-        self.assertIn('Einnahmen', content)
-        self.assertIn('Ausgaben', content)
-        self.assertIn('Summe', content)
+        self.assertTrue(content.startswith(b'%PDF-'))
