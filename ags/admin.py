@@ -16,7 +16,7 @@ from .emails import send_allocation_emails
 
 @admin.action(description='Ausgewählte AGs genehmigen')
 def make_approved(modeladmin, request, queryset):
-    queryset.update(status='APPROVED')
+    queryset.update(status=AG.Status.APPROVED)
 
 @admin.action(description='Losverfahren starten')
 def trigger_lottery(modeladmin, request, queryset):

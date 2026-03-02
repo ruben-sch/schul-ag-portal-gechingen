@@ -8,7 +8,7 @@ class LotteryTest(TestCase):
         AppConfig.load().save()
         self.ag1 = AG.objects.create(
             name="Beliebte AG", kapazitaet=1, 
-            klassenstufe_min=1, klassenstufe_max=4, status='APPROVED'
+            klassenstufe_min=1, klassenstufe_max=4, status=AG.Status.APPROVED
         )
         
     def test_lottery_utilization_and_fairness(self):
@@ -23,11 +23,11 @@ class LotteryTest(TestCase):
         
         run_lottery()
         
-        self.assertEqual(Anmeldung.objects.filter(ag=self.ag1, status='ACCEPTED').count(), 1)
-        self.assertEqual(Anmeldung.objects.filter(ag=self.ag1, status='REJECTED').count(), 1)
+        self.assertEqual(Anmeldung.objects.filter(ag=self.ag1, status=Anmeldung.Status.ACCEPTED).count(), 1)
+        self.assertEqual(Anmeldung.objects.filter(ag=self.ag1, status=Anmeldung.Status.REJECTED).count(), 1)
         
         reset_lottery()
-        self.assertEqual(Anmeldung.objects.filter(status='PENDING').count(), 2)
+        self.assertEqual(Anmeldung.objects.filter(status=Anmeldung.Status.PENDING).count(), 2)
 
     def test_priority_handling(self):
         # Test if lower prio (smaller number) is preferred if slots are limited across multiple AGs
