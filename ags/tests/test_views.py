@@ -15,7 +15,7 @@ class ViewTest(TestCase):
             kapazitaet=1,
             klassenstufe_min=1,
             klassenstufe_max=4,
-            status='APPROVED',
+            status=AG.Status.APPROVED,
             verantwortlicher_email='leiter@test.de',
             verantwortlicher_name='Herr Leiter'
         )

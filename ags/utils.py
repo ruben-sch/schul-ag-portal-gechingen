@@ -6,15 +6,15 @@ from .models import AG, Anmeldung, SchuelerProfile
 
 def reset_lottery():
     """Sets all registrations back to PENDING."""
-    Anmeldung.objects.all().update(status='PENDING')
+    Anmeldung.objects.all().update(status=Anmeldung.Status.PENDING)
 
 def run_lottery():
     with transaction.atomic():
         # 1. Reset
-        Anmeldung.objects.all().update(status='REJECTED')
+        Anmeldung.objects.all().update(status=Anmeldung.Status.REJECTED)
         
         # 2. Setup
-        approved_ags = {ag.id: ag for ag in AG.objects.filter(status='APPROVED')}
+        approved_ags = {ag.id: ag for ag in AG.objects.filter(status=AG.Status.APPROVED)}
         current_counts = {ag_id: 0 for ag_id in approved_ags.keys()}
         
         # Pre-fetch profiles and their class levels (memory efficient)
@@ -28,7 +28,7 @@ def run_lottery():
             s_klasse = profiles.get(p_id)
             if s_klasse is None: continue
             
-            wishes = Anmeldung.objects.filter(schueler_id=p_id, ag__status='APPROVED').order_by('prio')
+            wishes = Anmeldung.objects.filter(schueler_id=p_id, ag__status=AG.Status.APPROVED).order_by('prio')
             for wish in wishes:
                 ag = approved_ags[wish.ag_id]
                 if ag.klassenstufe_min <= s_klasse <= ag.klassenstufe_max:
@@ -46,14 +46,14 @@ def run_lottery():
             # Recalculate how many AGs each student has
             accepted_counts = {
                 row['schueler_id']: row['total'] 
-                for row in Anmeldung.objects.filter(status='ACCEPTED')
+                for row in Anmeldung.objects.filter(status=Anmeldung.Status.ACCEPTED)
                                      .values('schueler_id')
                                      .annotate(total=Count('id'))
             }
             
             # Find all rejected wishes where the AG still has space
             potential_wishes = []
-            for wish in Anmeldung.objects.filter(status='REJECTED', ag__status='APPROVED').order_by('prio'):
+            for wish in Anmeldung.objects.filter(status=Anmeldung.Status.REJECTED, ag__status=AG.Status.APPROVED).order_by('prio'):
                 ag = approved_ags.get(wish.ag_id)
                 if not ag: continue
                 s_klasse = profiles.get(wish.schueler_id)

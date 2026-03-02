@@ -26,7 +26,7 @@ class ModelTest(TestCase):
         ag = AG.objects.create(
             name="Test AG", kapazitaet=10, 
             klassenstufe_min=1, klassenstufe_max=2, 
-            status='APPROVED'
+            status=AG.Status.APPROVED
         )
         user = User.objects.create(username="test@test.de")
         profile = SchuelerProfile.objects.create(user=user, name="Kid", klassenstufe=4)

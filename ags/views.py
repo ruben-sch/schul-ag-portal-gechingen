@@ -170,7 +170,7 @@ def manual_intervention(request):
         try:
             anm = Anmeldung.objects.get(id=anm_id)
             if action == 'toggle_status':
-                anm.status = 'REJECTED' if anm.status == 'ACCEPTED' else 'ACCEPTED'
+                anm.status = Anmeldung.Status.REJECTED if anm.status == Anmeldung.Status.ACCEPTED else Anmeldung.Status.ACCEPTED
                 anm.save()
                 messages.success(request, f"Status für {anm.schueler.name} in {anm.ag.name} geändert.")
         except Anmeldung.DoesNotExist:
@@ -183,7 +183,7 @@ def manual_intervention(request):
         return redirect('manual_intervention')
 
     # Data for display
-    ags = AG.objects.filter(status='APPROVED').prefetch_related('anmeldungen__schueler')
+    ags = AG.objects.filter(status=AG.Status.APPROVED).prefetch_related('anmeldungen__schueler')
     students = SchuelerProfile.objects.prefetch_related('anmeldungen__ag').order_by('name')
     
     return render(request, 'ags/manual_intervention.html', {

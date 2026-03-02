@@ -3,10 +3,9 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 class AG(models.Model):
-    STATUS_CHOICES = [
-        ('SUBMITTED', 'Eingereicht'),
-        ('APPROVED', 'Genehmigt'),
-    ]
+    class Status(models.TextChoices):
+        SUBMITTED = 'SUBMITTED', 'Eingereicht'
+        APPROVED = 'APPROVED', 'Genehmigt'
 
     name = models.CharField(max_length=200)
     beschreibung = models.TextField()
@@ -39,7 +38,7 @@ class AG(models.Model):
     verantwortlicher_email = models.EmailField()
     verantwortlicher_telefon = models.CharField(max_length=50, blank=True)
     
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='SUBMITTED')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.SUBMITTED)
     
     def __str__(self):
         return self.name
@@ -65,16 +64,15 @@ class SchuelerProfile(models.Model):
         return f"{self.name} (Klasse {self.klassenstufe})"
 
 class Anmeldung(models.Model):
-    STATUS_CHOICES = [
-        ('PENDING', 'Wartend'),
-        ('ACCEPTED', 'Zugelassen'),
-        ('REJECTED', 'Abgelehnt/Warteliste'),
-    ]
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Wartend'
+        ACCEPTED = 'ACCEPTED', 'Zugelassen'
+        REJECTED = 'REJECTED', 'Abgelehnt/Warteliste'
 
     schueler = models.ForeignKey(SchuelerProfile, on_delete=models.CASCADE, related_name='anmeldungen')
     ag = models.ForeignKey(AG, on_delete=models.CASCADE, related_name='anmeldungen')
     prio = models.PositiveSmallIntegerField(default=1)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     erstellt_am = models.DateTimeField(auto_now_add=True)
 
     def clean(self):

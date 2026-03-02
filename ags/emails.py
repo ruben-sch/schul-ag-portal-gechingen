@@ -10,7 +10,7 @@ def send_allocation_emails():
     Sends grouped emails to students and detailed lists to leaders.
     """
     # 1. Group emails to Students (only those with ACCEPTED status)
-    accepted_anmeldungen = Anmeldung.objects.filter(status='ACCEPTED').select_related('schueler__user', 'ag')
+    accepted_anmeldungen = Anmeldung.objects.filter(status=Anmeldung.Status.ACCEPTED).select_related('schueler__user', 'ag')
     student_allocations = defaultdict(list)
     
     for anm in accepted_anmeldungen:
@@ -34,16 +34,16 @@ def send_allocation_emails():
         )
 
     # 2. Detailed emails to Leaders (Participants + Waitlist)
-    ags = AG.objects.filter(status='APPROVED')
+    ags = AG.objects.filter(status=AG.Status.APPROVED)
     for ag in ags:
         # Get participants (ACCEPTED)
         participants = Anmeldung.objects.filter(
-            ag=ag, status='ACCEPTED'
+            ag=ag, status=Anmeldung.Status.ACCEPTED
         ).select_related('schueler__user').order_by('schueler__name')
         
         # Get waitlist (REJECTED/Warteliste)
         waitlist = Anmeldung.objects.filter(
-            ag=ag, status='REJECTED'
+            ag=ag, status=Anmeldung.Status.REJECTED
         ).select_related('schueler__user').order_by('prio', 'erstellt_am')
 
         if participants.exists() or waitlist.exists():

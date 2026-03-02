@@ -5,7 +5,7 @@ from .models import AG, SchuelerProfile, Anmeldung, AppConfig
 def get_available_ags_for_student(klassenstufe):
     """Returns AGs suitable for a specific grade level."""
     return AG.objects.filter(
-        status='APPROVED',
+        status=AG.Status.APPROVED,
         klassenstufe_min__lte=klassenstufe,
         klassenstufe_max__gte=klassenstufe
     )
@@ -61,7 +61,7 @@ def get_managed_ags_data(user):
             profile = reg.schueler
             info_str = f"{profile.name} (Klasse {profile.klassenstufe}) - {profile.user.email} - Notfall: {profile.notfall_telefon}"
             
-            if reg.status == 'ACCEPTED':
+            if reg.status == Anmeldung.Status.ACCEPTED:
                 ag.accepted_display.append(info_str)
             else:
                 ag.waiting_display.append(f"{info_str} [Prio {reg.prio}]")
@@ -72,20 +72,20 @@ def get_portal_stats():
     """Returns global portal statistics."""
     total_schueler = SchuelerProfile.objects.count()
     total_anmeldungen = Anmeldung.objects.count()
-    total_slots = AG.objects.filter(status='APPROVED').aggregate(Sum('kapazitaet'))['kapazitaet__sum'] or 0
-    total_accepted = Anmeldung.objects.filter(status='ACCEPTED').count()
+    total_slots = AG.objects.filter(status=AG.Status.APPROVED).aggregate(Sum('kapazitaet'))['kapazitaet__sum'] or 0
+    total_accepted = Anmeldung.objects.filter(status=Anmeldung.Status.ACCEPTED).count()
     
     profile_stats = SchuelerProfile.objects.annotate(
-        accepted_count=Count('anmeldungen', filter=Q(anmeldungen__status='ACCEPTED'))
+        accepted_count=Count('anmeldungen', filter=Q(anmeldungen__status=Anmeldung.Status.ACCEPTED))
     ).aggregate(
         min_ags=Min('accepted_count'),
         max_ags=Max('accepted_count')
     )
     
     # Per AG stats
-    ag_stats = AG.objects.filter(status='APPROVED').annotate(
+    ag_stats = AG.objects.filter(status=AG.Status.APPROVED).annotate(
         reg_count=Count('anmeldungen'),
-        acc_count=Count('anmeldungen', filter=Q(anmeldungen__status='ACCEPTED'))
+        acc_count=Count('anmeldungen', filter=Q(anmeldungen__status=Anmeldung.Status.ACCEPTED))
     ).prefetch_related('anmeldungen__schueler')
     
     for ag in ag_stats:
@@ -94,8 +94,8 @@ def get_portal_stats():
         ag.reg_percent_clamped = min(ag.reg_percent, 100)
         
         anm_list = list(ag.anmeldungen.all())
-        ag.accepted_list = [a for a in anm_list if a.status == 'ACCEPTED']
-        ag.waiting_list = [a for a in anm_list if a.status != 'ACCEPTED']
+        ag.accepted_list = [a for a in anm_list if a.status == Anmeldung.Status.ACCEPTED]
+        ag.waiting_list = [a for a in anm_list if a.status != Anmeldung.Status.ACCEPTED]
         ag.waiting_list.sort(key=lambda x: x.prio)
         
     return {
@@ -111,7 +111,7 @@ def get_portal_stats():
 def get_students_with_stats(search_query=None, min_ag_filter=None):
     """Returns students with their accepted AG count, optionally filtered."""
     students = SchuelerProfile.objects.annotate(
-        accepted_count=Count('anmeldungen', filter=Q(anmeldungen__status='ACCEPTED'))
+        accepted_count=Count('anmeldungen', filter=Q(anmeldungen__status=Anmeldung.Status.ACCEPTED))
     ).prefetch_related('anmeldungen__ag').order_by('name')
     
     if search_query:
