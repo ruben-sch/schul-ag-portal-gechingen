@@ -52,19 +52,16 @@ def get_managed_ags_data(user):
     )
     
     for ag in managed_ags:
-        ag.accepted_display = []
-        ag.waiting_display = []
+        ag.accepted_list = []
+        ag.waiting_list = []
         anm_all = list(ag.anmeldungen.all())
         ag.total_count = len(anm_all)
         
         for reg in anm_all:
-            profile = reg.schueler
-            info_str = f"{profile.name} (Klasse {profile.klassenstufe}) - {profile.user.email} - Notfall: {profile.notfall_telefon}"
-            
             if reg.status == Anmeldung.Status.ACCEPTED:
-                ag.accepted_display.append(info_str)
+                ag.accepted_list.append(reg)
             else:
-                ag.waiting_display.append(f"{info_str} [Prio {reg.prio}]")
+                ag.waiting_list.append(reg)
     
     return managed_ags
 
