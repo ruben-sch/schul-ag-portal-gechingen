@@ -130,3 +130,20 @@ body {
     color: #f8f9fa !important;
     border-color: #f8f9fa !important;
 }
+
+/* Extracted inline styles */
+.navbar-logo {
+    height: 40px; 
+    background: white; 
+    border-radius: 4px; 
+    padding: 2px;
+}
+
+.progress-custom {
+    height: 6px; 
+    background-color: rgba(255,255,255,0.1);
+}
+
+.table-custom-transparent {
+    background: transparent;
+}
