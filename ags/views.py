@@ -7,6 +7,8 @@ from django.core.mail import send_mail
 from django.urls import reverse
 from django.conf import settings
 from datetime import datetime
+from django.http import HttpResponse
+import csv
 from django.db.models import Count, Sum, Min, Max, Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from sesame.utils import get_query_string
@@ -226,3 +228,70 @@ def test_email(request):
 
 def impressum(request):
     return render(request, 'ags/impressum.html')
+
+@user_passes_test(lambda u: u.is_staff)
+def export_ags_csv(request):
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="ags_flyer_export.csv"'
+    
+    writer = csv.writer(response, delimiter=',', quotechar='"', quoting=csv.QUOTE_ALL)
+    
+    writer.writerow([
+        "titel", "klassen", "datum", "start", "ende", "leitung", 
+        "ort", "kosten", "maxkinder", "mitbringen", "beschreibung", 
+        "orga_info", "bild"
+    ])
+    
+    ags = AG.objects.filter(status='APPROVED').order_by('name')
+    for ag in ags:
+        # Format classes
+        klassen = [f"{k}. Klasse" for k in range(ag.klassenstufe_min, ag.klassenstufe_max + 1)]
+        klassen_str = ", ".join(klassen)
+        
+        # Format dates (from JSON)
+        termine_dates = []
+        termine_starts = []
+        termine_endes = []
+        
+        if isinstance(ag.termine, list):
+            for t in ag.termine:
+                d = t.get('datum', '')
+                if '-' in d and len(d) == 10:
+                    y, m, day = d.split('-')
+                    d = f"{day}.{m}.{y}"
+                if d:
+                    termine_dates.append(d)
+                if t.get('start'):
+                    termine_starts.append(t.get('start'))
+                if t.get('ende'):
+                    termine_endes.append(t.get('ende'))
+                
+        datum_str = " / ".join(filter(None, termine_dates))
+        if len(termine_starts) > 0 and len(set(termine_starts)) == 1:
+            start_str = termine_starts[0]
+            ende_str = termine_endes[0] if len(termine_endes) > 0 else ""
+        else:
+            start_str = " / ".join(filter(None, termine_starts))
+            ende_str = " / ".join(filter(None, termine_endes))
+            
+        leitung_str = f"{ag.verantwortlicher_name} {ag.verantwortlicher_telefon}".strip()
+        kosten_str = f"{ag.kosten}€" if ag.kosten else "0€"
+        
+        writer.writerow([
+            ag.name,
+            klassen_str,
+            datum_str,
+            start_str,
+            ende_str,
+            leitung_str,
+            ag.ort or '',
+            kosten_str,
+            str(ag.kapazitaet),
+            ag.mitzubringen or '',
+            ag.beschreibung or '',
+            ag.hinweise or '',
+            "images/placeholder.png"
+        ])
+        
+    return response
+
