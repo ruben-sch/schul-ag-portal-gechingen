@@ -17,8 +17,8 @@ def run_lottery():
         approved_ags = {ag.id: ag for ag in AG.objects.filter(status='APPROVED')}
         current_counts = {ag_id: 0 for ag_id in approved_ags.keys()}
         
-        # Pre-fetch profiles and their class levels
-        profiles = {p.id: p.klassenstufe for p in SchuelerProfile.objects.all()}
+        # Pre-fetch profiles and their class levels (memory efficient)
+        profiles = dict(SchuelerProfile.objects.values_list('id', 'klassenstufe'))
 
         # 3. Phase 1: JEDER Schueler (Profile) bekommt (wenn möglich) EINEN Platz
         all_profile_ids = list(Anmeldung.objects.values_list('schueler_id', flat=True).distinct())
