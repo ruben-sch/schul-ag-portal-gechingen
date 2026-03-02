@@ -25,16 +25,13 @@ env = environ.Env(
 )
 
 # Reading .env file
-environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
+environ.Env.read_env(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
-# DIESE ZEILEN HINZUFÜGEN:
-# Vertraue dem X-Forwarded-Proto Header von Traefik für HTTPS
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Erlaube der Domain CSRF-Requests (wichtig für Logins/Formulare)
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["https://schul-ag.schwarzpost.de"])
