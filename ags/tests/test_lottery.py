@@ -29,7 +29,16 @@ class LotteryTest(TestCase):
         reset_lottery()
         self.assertEqual(Anmeldung.objects.filter(status='PENDING').count(), 2)
 
-    def test_priority_handling(self):
-        # Test if lower prio (smaller number) is preferred if slots are limited across multiple AGs
-        # (Simplified, as our lottery is complex)
-        pass
+    def test_lottery_efficiency_large_group(self):
+        # Create many profiles to ensure memory efficient query works correctly
+        for i in range(50):
+            u = User.objects.create(username=f"u{i}@test.de", email=f"u{i}@test.de")
+            p = SchuelerProfile.objects.create(user=u, name=f"S{i}", klassenstufe=2)
+            Anmeldung.objects.create(schueler=p, ag=self.ag1, prio=1)
+            
+        self.ag1.kapazitaet = 20
+        self.ag1.save()
+        run_lottery()
+        
+        self.assertEqual(Anmeldung.objects.filter(ag=self.ag1, status='ACCEPTED').count(), 20)
+        self.assertEqual(Anmeldung.objects.filter(ag=self.ag1, status='REJECTED').count(), 30)
