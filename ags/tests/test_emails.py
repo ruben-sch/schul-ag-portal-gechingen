@@ -21,6 +21,10 @@ class EmailTest(TestCase):
         self.u1 = User.objects.create(username="kind1@test.de", email="kind1@test.de")
         self.p1 = SchuelerProfile.objects.create(user=self.u1, name="Kind 1", klassenstufe=2)
         Anmeldung.objects.create(schueler=self.p1, ag=self.ag1, prio=1, status='ACCEPTED')
+        
+        self.u2 = User.objects.create(username="kind2@test.de", email="kind2@test.de")
+        self.p2 = SchuelerProfile.objects.create(user=self.u2, name="Kind 2", klassenstufe=2)
+        Anmeldung.objects.create(schueler=self.p2, ag=self.ag1, prio=1, status='REJECTED')
 
     def test_send_allocation_emails_with_attachment(self):
         # Empty the test outbox
@@ -42,16 +46,16 @@ class EmailTest(TestCase):
         self.assertEqual(leader_mail.to, ['leiter@test.de'])
         
         # Check attachment
-        self.assertEqual(len(leader_mail.attachments), 1)
-        attachment = leader_mail.attachments[0]
+        self.assertEqual(len(leader_mail.attachments), 3)
         
-        # Name should be Abrechnung_Roboter AG.pdf
-        self.assertIn('Abrechnung', attachment[0])
-        self.assertTrue(attachment[0].endswith('.pdf'))
-        
-        # Verify MIME type
-        self.assertEqual(attachment[2], 'application/pdf')
-        
-        # Verify content has PDF magic bytes
-        content = attachment[1]
-        self.assertTrue(content.startswith(b'%PDF-'))
+        # Verify all are PDFs
+        for attachment in leader_mail.attachments:
+            name, content, mime_type = attachment
+            self.assertTrue(name.endswith('.pdf'))
+            self.assertEqual(mime_type, 'application/pdf')
+            self.assertTrue(content.startswith(b'%PDF-'))
+            
+        attachment_names = [a[0] for a in leader_mail.attachments]
+        self.assertTrue(any('Abrechnung' in name for name in attachment_names))
+        self.assertTrue(any('Teilnehmerliste' in name for name in attachment_names))
+        self.assertTrue(any('Warteliste' in name for name in attachment_names))
