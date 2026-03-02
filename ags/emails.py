@@ -1,6 +1,9 @@
 import copy
 import io
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
@@ -19,7 +22,7 @@ def draw_header(c, title, ag_name):
             img = ImageReader(logo_path)
             c.drawImage(img, 400, 760, width=140, height=140 * 156 / 340, preserveAspectRatio=True)
         except Exception as e:
-            pass
+            logger.warning("Error drawing logo: %s", e)
             
     c.setFont("Helvetica-Bold", 14)
     c.drawString(50, 800, "Schlehengäuschule Gechingen")
