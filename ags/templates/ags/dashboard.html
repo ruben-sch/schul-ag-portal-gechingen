@@ -61,9 +61,18 @@
                     <div class="col-12 col-md-8 mb-3 mb-md-0">
                         <h3 class="h4 text-light mb-2">{{ ag.name }}</h3>
                         <div class="text-secondary small mb-2">
-                            <strong class="text-light">Wann:</strong> {{ ag.get_termine_display }}
+                            <strong class="text-light">Wann:</strong> {{ ag.get_termine_display }}<br>
+                            <strong class="text-light">Wo:</strong> {{ ag.ort|default:"Noch nicht festgelegt" }}<br>
+                            <strong class="text-light">Klassenstufe:</strong> 
+                            {% if ag.klassenstufe_min == ag.klassenstufe_max %}
+                            {{ ag.klassenstufe_min }}
+                            {% else %}
+                            {{ ag.klassenstufe_min }} - {{ ag.klassenstufe_max }}
+                            {% endif %}<br>
+                            <strong class="text-light">Kosten:</strong> 
+                            {% if ag.kosten %}{{ ag.kosten }} €{% else %}Kostenlos{% endif %}
                         </div>
-                        <div class="small">
+                        <div class="small mt-3">
                             <span class="text-secondary me-2">Status:</span>
                             {% if ag.status == 'APPROVED' %}
                             <span class="text-success fw-medium"><i
@@ -79,6 +88,22 @@
                     </div>
                 </div>
 
+                <div class="row mb-4 pb-4 border-bottom border-secondary border-opacity-25">
+                    <div class="col-12 text-secondary small">
+                        {% if ag.beschreibung %}
+                        <p class="mb-2"><strong class="text-light">Beschreibung:</strong><br>{{ ag.beschreibung }}</p>
+                        {% endif %}
+                        {% if ag.hinweise %}
+                        <p class="mb-2"><strong class="text-light">Organisatorische Hinweise:</strong>
+                            {% if ag.hinweise %}<br>{{ ag.hinweise }}{% endif %}
+                        </p>
+                        {% endif %}
+                        {% if ag.mitzubringen %}
+                        <p class="mb-0"><strong class="text-light">Mitzubringen:</strong><br>{{ ag.mitzubringen }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <div class="row g-5">
                     <!-- Teilnehmerliste -->
                     <div class="col-12 col-lg-6">
@@ -89,8 +114,8 @@
                             {% for reg in ag.accepted_list %}
                             <li
                                 class="list-group-item bg-transparent text-light border-secondary border-opacity-25 py-2 px-0">
-                                {{ reg.schueler.name }} (Klasse {{ reg.schueler.klassenstufe }}) - {{
-                                reg.schueler.user.email }} - Notfall: {{ reg.schueler.notfall_telefon }}
+                                {{ reg.schueler.name }} (Klasse {{ reg.schueler.klassenstufe }}) - 
+                                {% if reg.schueler.user.email %}{{ reg.schueler.user.email }}{% endif %} - Notfall: {{ reg.schueler.notfall_telefon }} [Prio {{ reg.prio }}]
                             </li>
                             {% empty %}
                             <li class="list-group-item bg-transparent text-secondary border-0 px-0 fst-italic">
@@ -109,9 +134,8 @@
                             {% for reg in ag.waiting_list %}
                             <li
                                 class="list-group-item bg-transparent text-light border-secondary border-opacity-25 py-2 px-0">
-                                {{ reg.schueler.name }} (Klasse {{ reg.schueler.klassenstufe }}) - {{
-                                reg.schueler.user.email }} - Notfall: {{ reg.schueler.notfall_telefon }} [Prio {{
-                                reg.prio }}]
+                                {{ reg.schueler.name }} (Klasse {{ reg.schueler.klassenstufe }}) - 
+                                {% if reg.schueler.user.email %}{{ reg.schueler.user.email }}{% endif %} - Notfall: {{ reg.schueler.notfall_telefon }} [Prio {{ reg.prio }}]
                             </li>
                             {% empty %}
                             <li class="list-group-item bg-transparent text-secondary border-0 px-0 fst-italic">
