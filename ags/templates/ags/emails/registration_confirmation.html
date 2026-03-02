@@ -1,0 +1,28 @@
+{% extends "ags/emails/base_email.html" %}
+
+{% block content %}
+<p>Hallo {{ schueler.name }},</p>
+
+<p>vielen Dank für deine Anmeldung für die kommenden Schul-AGs!</p>
+
+<p>Hiermit bestätigen wir den Eingang deiner AG-Wünsche. Du hast dich für folgende AGs eingetragen (sortiert nach deiner
+    Priorität):</p>
+
+<ul>
+    {% for anmeldung in anmeldungen %}
+    <li>
+        <strong>Priorität {{ anmeldung.prio }}:</strong> {{ anmeldung.ag.name }}<br>
+        <em>Wann:</em> {{ anmeldung.ag.get_termine_display }}<br>
+        <em>Ort:</em> {{ anmeldung.ag.ort|default:"Noch nicht festgelegt" }}
+    </li>
+    {% endfor %}
+</ul>
+
+<div
+    style="background-color: #d9534f; border-left: 4px solid #d9534f; padding: 15px; margin-top: 25px; border-radius: 4px;">
+    <strong>Wichtiger Hinweis:</strong><br>
+    Dies ist <u>noch keine Anmeldebestätigung</u> oder Zusage für die Teilnahme! Nach Ablauf der Anmeldefrist erfolgt
+    noch die Verteilung bzw. das Losverfahren. Du erhältst anschließend in einer weiteren E-Mail die finale Bestätigung
+    darüber, welche AGs dir im kommenden Halbjahr zugelost wurden und besucht werden können.
+</div>
+{% endblock %}

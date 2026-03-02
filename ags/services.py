@@ -1,5 +1,9 @@
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Min, Max, Q
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig
 
 def get_available_ags_for_student(klassenstufe):
@@ -34,9 +38,29 @@ def update_student_registrations(student_profile, ag_ids):
     valid_selections = [ag_id for ag_id in ag_ids if str(ag_id) in available_ids]
     
     Anmeldung.objects.filter(schueler=student_profile).delete()
+    saved_anmeldungen = []
     for i, ag_id in enumerate(valid_selections):
         ag = AG.objects.get(id=ag_id)
-        Anmeldung.objects.create(schueler=student_profile, ag=ag, prio=i+1)
+        anm = Anmeldung.objects.create(schueler=student_profile, ag=ag, prio=i+1)
+        saved_anmeldungen.append(anm)
+        
+    try:
+        context = {
+            'schueler': student_profile,
+            'anmeldungen': saved_anmeldungen,
+        }
+        html_message = render_to_string('ags/emails/registration_confirmation.html', context)
+        plain_message = strip_tags(html_message)
+        send_mail(
+            "Deine Schul-AG Anmeldung",
+            plain_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [student_profile.user.email],
+            html_message=html_message,
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Could not send confirmation email: %s", e)
     
     return len(valid_selections) == len(ag_ids)
 
