@@ -1,5 +1,7 @@
-import csv
+import copy
 import io
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
@@ -8,19 +10,34 @@ from .models import Anmeldung, AG, SchuelerProfile
 from collections import defaultdict
 
 def generate_abrechnungsvordruck(ag):
-    output = io.StringIO()
-    writer = csv.writer(output, delimiter=';')
-    writer.writerow(["Abrechnungsvordruck", f"AG: {ag.name}"])
-    writer.writerow([])
-    writer.writerow(["Beschreibung", "Betrag (€)"])
-    writer.writerow(["Einnahmen Teilnehmergebühren", ""])
-    writer.writerow(["Ausgaben", ""])
-    writer.writerow(["Ausgaben", ""])
-    writer.writerow(["Ausgaben", ""])
-    writer.writerow(["Ausgaben", ""])
-    writer.writerow(["Ausgaben", ""])
-    writer.writerow(["Summe", ""])
-    return output.getvalue().encode('utf-8')
+    output = io.BytesIO()
+    c = canvas.Canvas(output, pagesize=A4)
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, 800, "Abrechnungsvordruck")
+    
+    c.setFont("Helvetica", 12)
+    c.drawString(50, 780, f"AG: {ag.name}")
+    
+    c.drawString(50, 740, "Beschreibung")
+    c.drawString(400, 740, "Betrag (€)")
+    c.line(50, 735, 500, 735)
+    
+    c.drawString(50, 715, "Einnahmen Teilnehmergebühren")
+    c.line(400, 715, 500, 715)
+    
+    y = 680
+    for i in range(5):
+        c.drawString(50, y, "Ausgaben")
+        c.line(400, y, 500, y)
+        y -= 25
+        
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y-10, "Summe")
+    c.line(400, y-10, 500, y-10)
+    
+    c.showPage()
+    c.save()
+    return output.getvalue()
 
 def send_allocation_emails():
     """
@@ -81,7 +98,7 @@ def send_allocation_emails():
             )
             msg.attach_alternative(html_message, "text/html")
             
-            csv_content = generate_abrechnungsvordruck(ag)
-            msg.attach(f"Abrechnung_{ag.name}.csv", csv_content, "text/csv")
+            pdf_content = generate_abrechnungsvordruck(ag)
+            msg.attach(f"Abrechnung_{ag.name}.pdf", pdf_content, "application/pdf")
             
             msg.send()
