@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.core.mail import send_mail
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
+from django.views.generic import TemplateView, CreateView, FormView
 from django.conf import settings
 from datetime import datetime
 from django.db.models import Count, Sum, Min, Max, Q
@@ -15,54 +16,56 @@ from .utils import run_lottery
 from . import services
 
 
-def landing(request):
-    config = AppConfig.load()
-    return render(request, 'ags/landing.html', {
-        'anmeldung_offen': config.anmeldung_offen if config else False,
-        'ag_registrierung_offen': config.ag_registrierung_offen if config else True
-    })
+class LandingView(TemplateView):
+    template_name = 'ags/landing.html'
 
-def propose_ag(request):
-    config = AppConfig.load()
-    if config and not config.ag_registrierung_offen:
-        messages.error(request, "Das Einreichen neuer AGs ist zur Zeit deaktiviert.")
-        return redirect('landing')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        config = AppConfig.load()
+        context['anmeldung_offen'] = config.anmeldung_offen if config else False
+        context['ag_registrierung_offen'] = config.ag_registrierung_offen if config else True
+        return context
 
-    if request.method == 'POST':
-        form = AGProposalForm(request.POST)
-        if form.is_valid():
-            ag = form.save()
-            
-            # Ensure leader has a User account for dashboard access
-            User.objects.get_or_create(
-                username=ag.verantwortlicher_email,
-                defaults={
-                    'email': ag.verantwortlicher_email,
-                    'first_name': ag.verantwortlicher_name
-                }
-            )
-            
-            messages.success(request, "Vielen Dank! Die AG wurde eingereicht und wird nun geprüft.")
+class ProposeAGView(CreateView):
+    model = AG
+    form_class = AGProposalForm
+    template_name = 'ags/propose_ag.html'
+    success_url = reverse_lazy('landing')
+
+    def dispatch(self, request, *args, **kwargs):
+        config = AppConfig.load()
+        if config and not config.ag_registrierung_offen:
+            messages.error(request, "Das Einreichen neuer AGs ist zur Zeit deaktiviert.")
             return redirect('landing')
-    else:
-        form = AGProposalForm()
-    return render(request, 'ags/propose_ag.html', {'form': form})
+        return super().dispatch(request, *args, **kwargs)
 
-def register_schueler(request):
-    config = AppConfig.load()
-    if config and not config.anmeldung_offen:
-        messages.error(request, "Die Anmeldephase ist zur Zeit geschlossen.")
-        return redirect('landing')
+    def form_valid(self, form):
+        ag = form.save()
+        User.objects.get_or_create(
+            username=ag.verantwortlicher_email,
+            defaults={
+                'email': ag.verantwortlicher_email,
+                'first_name': ag.verantwortlicher_name
+            }
+        )
+        messages.success(self.request, "Vielen Dank! Die AG wurde eingereicht und wird nun geprüft.")
+        return super().form_valid(form)
 
-    if request.method == 'POST':
-        form = SchuelerFirstStepForm(request.POST)
-        if form.is_valid():
-            # Save data in session for step 2
-            request.session['reg_data'] = form.cleaned_data
-            return redirect('select_ags')
-    else:
-        form = SchuelerFirstStepForm()
-    return render(request, 'ags/register_step1.html', {'form': form})
+class RegisterSchuelerStep1View(FormView):
+    form_class = SchuelerFirstStepForm
+    template_name = 'ags/register_step1.html'
+    success_url = reverse_lazy('select_ags')
+
+    def dispatch(self, request, *args, **kwargs):
+        config = AppConfig.load()
+        if config and not config.anmeldung_offen:
+            messages.error(request, "Die Anmeldephase ist zur Zeit geschlossen.")
+            return redirect('landing')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        self.request.session['reg_data'] = form.cleaned_data
+        return super().form_valid(form)
 
 def select_ags(request):
     reg_data = request.session.get('reg_data')
@@ -101,26 +104,23 @@ def select_ags(request):
         'reg_data': reg_data
     })
 
-def request_magic_link(request):
-    if request.method == 'POST':
-        form = LoginForm(request.POST)
-        if form.is_valid():
-            email = form.cleaned_data['email']
-            try:
-                user = User.objects.get(email=email)
-                # Generate Magic Link
-                link = request.build_absolute_uri(reverse('dashboard'))
-                link += get_query_string(user)
-                
-                # In a real app, send email here. For now, print to console/show message.
-                print(f"MAGIC LINK FOR {email}: {link}")
-                messages.success(request, f"Ein Anmelde-Link wurde an {email} gesendet (siehe Server-Log).")
-                return redirect('landing')
-            except User.DoesNotExist:
-                messages.error(request, "Diese E-Mail-Adresse ist nicht bekannt.")
-    else:
-        form = LoginForm()
-    return render(request, 'ags/login.html', {'form': form})
+class RequestMagicLinkView(FormView):
+    form_class = LoginForm
+    template_name = 'ags/login.html'
+    success_url = reverse_lazy('landing')
+
+    def form_valid(self, form):
+        email = form.cleaned_data['email']
+        try:
+            user = User.objects.get(email=email)
+            link = self.request.build_absolute_uri(reverse('dashboard'))
+            link += get_query_string(user)
+            print(f"MAGIC LINK FOR {email}: {link}")
+            messages.success(self.request, f"Ein Anmelde-Link wurde an {email} gesendet (siehe Server-Log).")
+            return super().form_valid(form)
+        except User.DoesNotExist:
+            messages.error(self.request, "Diese E-Mail-Adresse ist nicht bekannt.")
+            return self.form_invalid(form)
 
 @login_required
 def dashboard(request):
