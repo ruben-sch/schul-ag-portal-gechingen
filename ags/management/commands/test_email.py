@@ -2,6 +2,10 @@ from django.core.management.base import BaseCommand
 from django.core.mail import send_mail
 from django.conf import settings
 import sys
+import logging
+from smtplib import SMTPException
+
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = 'Sends a test email to validate SMTP settings in dev and prod environments'
@@ -25,6 +29,11 @@ class Command(BaseCommand):
                 fail_silently=False,
             )
             self.stdout.write(self.style.SUCCESS(f"Success! The test email has been sent successfully to {recipient}."))
+        except SMTPException as e:
+            logger.error(f"SMTP Fehler beim E-Mail-Versand an {recipient}: {e}", exc_info=True)
+            self.stdout.write(self.style.ERROR("Fehler beim Senden der E-Mail (SMTP)."))
+            sys.exit(1)
         except Exception as e:
+            logger.error(f"Unerwarteter Fehler beim E-Mail-Versand an {recipient}: {e}", exc_info=True)
             self.stdout.write(self.style.ERROR(f"Failed to send email. An error occurred:\n{str(e)}"))
             sys.exit(1)
