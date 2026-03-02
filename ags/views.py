@@ -1,3 +1,5 @@
+import logging
+from smtplib import SMTPException
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -10,10 +12,10 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from sesame.utils import get_query_string
 from .forms import AGProposalForm, SchuelerFirstStepForm, LoginForm
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig
-from .forms import AGProposalForm, SchuelerFirstStepForm, LoginForm
 from .utils import run_lottery
 from . import services
 
+logger = logging.getLogger(__name__)
 
 def landing(request):
     config = AppConfig.load()
@@ -169,8 +171,12 @@ def manual_intervention(request):
                 anm.status = 'REJECTED' if anm.status == 'ACCEPTED' else 'ACCEPTED'
                 anm.save()
                 messages.success(request, f"Status für {anm.schueler.name} in {anm.ag.name} geändert.")
+        except Anmeldung.DoesNotExist:
+            logger.warning(f"Anmeldung mit ID {anm_id} nicht gefunden in manual_intervention.")
+            messages.error(request, "Ausgewählte Anmeldung konnte nicht gefunden werden.")
         except Exception as e:
-            messages.error(request, f"Fehler: {str(e)}")
+            logger.error(f"Unerwarteter Fehler bei manual_intervention (ID: {anm_id}): {e}", exc_info=True)
+            messages.error(request, "Ein unerwarteter Fehler ist aufgetreten.")
         
         return redirect('manual_intervention')
 
@@ -209,8 +215,12 @@ def test_email(request):
             fail_silently=False,
         )
         messages.success(request, f"Test-E-Mail wurde erfolgreich an {user_email} (oder an die Konsole) versendet.")
+    except SMTPException as e:
+        logger.error(f"SMTP Fehler beim E-Mail-Versand an {user_email}: {e}", exc_info=True)
+        messages.error(request, "SMTP Fehler beim E-Mail-Versand. Bitte Server-Logs prüfen.")
     except Exception as e:
-        messages.error(request, f"Fehler beim E-Mail-Versand: {str(e)}")
+        logger.error(f"Unerwarteter Fehler beim E-Mail-Versand an {user_email}: {e}", exc_info=True)
+        messages.error(request, "Ein unerwarteter Fehler ist aufgetreten. Bitte Server-Logs prüfen.")
         
     return redirect('stats_dashboard')
 
