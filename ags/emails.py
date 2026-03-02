@@ -1,9 +1,26 @@
-from django.core.mail import send_mail
+import csv
+import io
+from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
 from .models import Anmeldung, AG, SchuelerProfile
 from collections import defaultdict
+
+def generate_abrechnungsvordruck(ag):
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    writer.writerow(["Abrechnungsvordruck", f"AG: {ag.name}"])
+    writer.writerow([])
+    writer.writerow(["Beschreibung", "Betrag (€)"])
+    writer.writerow(["Einnahmen Teilnehmergebühren", ""])
+    writer.writerow(["Ausgaben", ""])
+    writer.writerow(["Ausgaben", ""])
+    writer.writerow(["Ausgaben", ""])
+    writer.writerow(["Ausgaben", ""])
+    writer.writerow(["Ausgaben", ""])
+    writer.writerow(["Summe", ""])
+    return output.getvalue().encode('utf-8')
 
 def send_allocation_emails():
     """
@@ -56,10 +73,15 @@ def send_allocation_emails():
             html_message = render_to_string('ags/emails/leader_list.html', context)
             plain_message = strip_tags(html_message)
             
-            send_mail(
-                subject,
-                plain_message,
-                settings.DEFAULT_FROM_EMAIL,
-                [ag.verantwortlicher_email],
-                html_message=html_message,
+            msg = EmailMultiAlternatives(
+                subject=subject,
+                body=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[ag.verantwortlicher_email]
             )
+            msg.attach_alternative(html_message, "text/html")
+            
+            csv_content = generate_abrechnungsvordruck(ag)
+            msg.attach(f"Abrechnung_{ag.name}.csv", csv_content, "text/csv")
+            
+            msg.send()
