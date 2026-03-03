@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.2.0...v0.2.1) (2026-03-03)
+
+
+### Bug Fixes
+
+* Add packages write permission to release-please ([b124be1](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/b124be1c97e46c993e2e4cb6dc8042a8a75d7544))
+* trigger deploy-hetzner on release ([0dd3185](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/0dd3185c141db7ac32ac1222214b829269b41e62))
+
 ## [0.2.0](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.1.0...v0.2.0) (2026-03-03)
 
 
