@@ -144,3 +144,43 @@ class ViewTest(TestCase):
         profile2.refresh_from_db()
         self.assertTrue(profile1.acceptance_email_sent)
         self.assertTrue(profile2.acceptance_email_sent)
+
+    def test_manual_intervention_search(self):
+        user = User.objects.create(username="admin_search@test.de", is_staff=True)
+        self.client.force_login(user)
+        
+        student_user1 = User.objects.create(email="alfa@test.de", username="alfa@test.de")
+        SchuelerProfile.objects.create(user=student_user1, name="Alfa Romeo", klassenstufe=2)
+        
+        student_user2 = User.objects.create(email="beta@test.de", username="beta@test.de")
+        SchuelerProfile.objects.create(user=student_user2, name="Beta Version", klassenstufe=2)
+        
+        # Test full list
+        res = self.client.get(reverse('manual_intervention'))
+        self.assertContains(res, "Alfa Romeo")
+        self.assertContains(res, "Beta Version")
+        
+        # Test search
+        res = self.client.get(reverse('manual_intervention') + "?search_query=Alfa")
+        self.assertContains(res, "Alfa Romeo")
+        self.assertNotContains(res, "Beta Version")
+        
+    def test_manual_intervention_update_prio(self):
+        user = User.objects.create(username="admin_prio@test.de", is_staff=True)
+        self.client.force_login(user)
+        
+        student_user = User.objects.create(email="prio@test.de", username="prio@test.de")
+        profile = SchuelerProfile.objects.create(user=student_user, name="Prio Student", klassenstufe=2)
+        anm = Anmeldung.objects.create(schueler=profile, ag=self.ag1, status=Anmeldung.Status.ACCEPTED, prio=1)
+        
+        self.assertEqual(anm.prio, 1)
+        
+        res = self.client.post(reverse('manual_intervention'), {
+            'action': 'update_prio',
+            'anmeldung_id': anm.id,
+            'prio': '4'
+        })
+        
+        self.assertEqual(res.status_code, 302)
+        anm.refresh_from_db()
+        self.assertEqual(anm.prio, 4)
