@@ -130,6 +130,61 @@ def send_single_acceptance_email(schueler, ag_list=None):
         logger.error(f"Failed to send acceptance email to {schueler.user.email}: {e}")
         return False
 
+def send_single_leader_email(ag):
+    """
+    Sends the detailed email (participants + waitlist) to the AG leader.
+    Returns True if sent successfully, False otherwise.
+    """
+    # Get participants (ACCEPTED)
+    participants = Anmeldung.objects.filter(
+        ag=ag, status=Anmeldung.Status.ACCEPTED
+    ).select_related('schueler__user').order_by('schueler__name')
+    
+    # Get waitlist (REJECTED/Warteliste)
+    waitlist = Anmeldung.objects.filter(
+        ag=ag, status=Anmeldung.Status.REJECTED
+    ).select_related('schueler__user').order_by('prio', 'erstellt_am')
+
+    if not participants.exists() and not waitlist.exists():
+        return False
+
+    subject = f"Teilnehmerliste & Warteliste für AG: {ag.name}"
+    context = {
+        'ag': ag,
+        'participants': participants,
+        'waitlist': waitlist,
+    }
+    html_message = render_to_string('ags/emails/leader_list.html', context)
+    plain_message = strip_tags(html_message)
+    
+    try:
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[ag.verantwortlicher_email]
+        )
+        msg.attach_alternative(html_message, "text/html")
+        
+        pdf_content = generate_abrechnungsvordruck(ag)
+        msg.attach(f"Abrechnung_{ag.name}.pdf", pdf_content, "application/pdf")
+        
+        if participants.exists():
+            tl_pdf = generate_student_list_pdf(ag, participants, "Teilnehmerliste")
+            msg.attach(f"Teilnehmerliste_{ag.name}.pdf", tl_pdf, "application/pdf")
+            
+        if waitlist.exists():
+            wl_pdf = generate_student_list_pdf(ag, waitlist, "Warteliste")
+            msg.attach(f"Warteliste_{ag.name}.pdf", wl_pdf, "application/pdf")
+        
+        msg.send()
+        ag.leader_email_sent = True
+        ag.save()
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send leader email for {ag.name} to {ag.verantwortlicher_email}: {e}")
+        return False
+
 def send_allocation_emails(only_unsent=False):
     """
     Sends grouped emails to students and detailed lists to leaders.
@@ -149,46 +204,6 @@ def send_allocation_emails(only_unsent=False):
     # 2. Detailed emails to Leaders (Participants + Waitlist)
     ags = AG.objects.filter(status=AG.Status.APPROVED)
     for ag in ags:
-        # Get participants (ACCEPTED)
-        participants = Anmeldung.objects.filter(
-            ag=ag, status=Anmeldung.Status.ACCEPTED
-        ).select_related('schueler__user').order_by('schueler__name')
-        
-        # Get waitlist (REJECTED/Warteliste)
-        waitlist = Anmeldung.objects.filter(
-            ag=ag, status=Anmeldung.Status.REJECTED
-        ).select_related('schueler__user').order_by('prio', 'erstellt_am')
-
-        if participants.exists() or waitlist.exists():
-            subject = f"Teilnehmerliste & Warteliste für AG: {ag.name}"
-            context = {
-                'ag': ag,
-                'participants': participants,
-                'waitlist': waitlist,
-            }
-            html_message = render_to_string('ags/emails/leader_list.html', context)
-            plain_message = strip_tags(html_message)
-            
-            try:
-                msg = EmailMultiAlternatives(
-                    subject=subject,
-                    body=plain_message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[ag.verantwortlicher_email]
-                )
-                msg.attach_alternative(html_message, "text/html")
-                
-                pdf_content = generate_abrechnungsvordruck(ag)
-                msg.attach(f"Abrechnung_{ag.name}.pdf", pdf_content, "application/pdf")
-                
-                if participants.exists():
-                    tl_pdf = generate_student_list_pdf(ag, participants, "Teilnehmerliste")
-                    msg.attach(f"Teilnehmerliste_{ag.name}.pdf", tl_pdf, "application/pdf")
-                    
-                if waitlist.exists():
-                    wl_pdf = generate_student_list_pdf(ag, waitlist, "Warteliste")
-                    msg.attach(f"Warteliste_{ag.name}.pdf", wl_pdf, "application/pdf")
-                
-                msg.send()
-            except Exception as e:
-                logger.error(f"Failed to send leader email for {ag.name} to {ag.verantwortlicher_email}: {e}")
+        if only_unsent and ag.leader_email_sent:
+            continue
+        send_single_leader_email(ag)

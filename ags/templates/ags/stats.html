@@ -69,7 +69,19 @@
                 {% for ag in ag_stats %}
                 <tr class="border-bottom border-secondary border-opacity-10 align-top">
                     <td class="py-4 pe-4">
-                        <strong class="fs-5 text-light d-block mb-3">{{ ag.name }}</strong>
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <strong class="fs-5 text-light d-block">{{ ag.name }}</strong>
+                            <form method="post" action="{% url 'resend_leader_email' %}" class="m-0 d-flex align-items-center gap-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="ag_id" value="{{ ag.id }}">
+                                {% if ag.leader_email_sent %}
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50" title="Mail an Leiter gesendet"><i class="bi bi-check-circle-fill"></i> Gesendet</span>
+                                {% else %}
+                                <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50" title="Mail an Leiter fehlt"><i class="bi bi-x-circle-fill"></i> Fehlt</span>
+                                {% endif %}
+                                <button type="submit" class="btn btn-sm btn-outline-light py-0 px-2" title="Leiter-Email (erneut) ansenden"><i class="bi bi-send"></i></button>
+                            </form>
+                        </div>
                         <div class="small">
                             <div class="text-success fw-bold mb-2">Zugelassen:</div>
                             <ul class="list-unstyled ps-3 mb-4 border-start border-success border-opacity-25">

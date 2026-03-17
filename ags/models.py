@@ -38,6 +38,8 @@ class AG(models.Model):
     verantwortlicher_email = models.EmailField()
     verantwortlicher_telefon = models.CharField(max_length=50, blank=True)
     
+    leader_email_sent = models.BooleanField(default=False, verbose_name="E-Mail an AG-Leitung gesendet")
+    
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.SUBMITTED)
     
     def __str__(self):

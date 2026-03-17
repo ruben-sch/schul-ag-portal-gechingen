@@ -256,6 +256,26 @@ def resend_email(request):
     return redirect('manual_intervention')
 
 @user_passes_test(lambda u: u.is_staff)
+def resend_leader_email(request):
+    if request.method == 'POST':
+        ag_id = request.POST.get('ag_id')
+        try:
+            ag = AG.objects.get(id=ag_id)
+            from .emails import send_single_leader_email
+            success = send_single_leader_email(ag)
+            if success:
+                messages.success(request, f"E-Mail für AG-Leitung ({ag.verantwortlicher_email}) erfolgreich gesendet.")
+            else:
+                messages.error(request, f"Fehler beim Senden der E-Mail für AG '{ag.name}' (ggf. keine Teilnehmer).")
+        except AG.DoesNotExist:
+            messages.error(request, "AG nicht gefunden.")
+        except Exception as e:
+            logger.error(f"Unerwarteter Fehler beim AG-Leiter E-Mail-Nachversand: {e}", exc_info=True)
+            messages.error(request, "Ein Fehler ist aufgetreten.")
+            
+    return redirect('stats_dashboard')
+
+@user_passes_test(lambda u: u.is_staff)
 def stats_export(request):
     # This view is optimized for printing
     stats = services.get_portal_stats()
