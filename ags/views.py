@@ -170,8 +170,22 @@ def manual_intervention(request):
         try:
             if action == 'send_all_unsent':
                 from .emails import send_allocation_emails
-                send_allocation_emails(only_unsent=True)
-                messages.success(request, "Alle fehlenden Zuteilungs-Mails wurden (sofern möglich) erfolgreich versendet.")
+                results = send_allocation_emails(only_unsent=True)
+                s_sent = results['students_sent']
+                s_fail = results['students_failed']
+                l_sent = results['leaders_sent']
+                l_fail = results['leaders_failed']
+                msg = f"Versand abgeschlossen: {s_sent} Schüler-Mails gesendet"
+                if s_fail:
+                    msg += f", {s_fail} fehlgeschlagen"
+                msg += f". {l_sent} AG-Leiter-Mails gesendet"
+                if l_fail:
+                    msg += f", {l_fail} fehlgeschlagen"
+                msg += "."
+                if s_fail or l_fail:
+                    messages.warning(request, msg)
+                else:
+                    messages.success(request, msg)
             else:
                 anm = Anmeldung.objects.get(id=anm_id)
                 if action == 'toggle_status':
