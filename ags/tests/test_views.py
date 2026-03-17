@@ -92,3 +92,55 @@ class ViewTest(TestCase):
         self.assertIn('Roboter AG', row)
         self.assertIn('1. Klasse, 2. Klasse', row)  # Must format classes properly!
         self.assertIn('images/placeholder.png', row)  # Placeholder constraint
+
+    def test_confirmation_email_tracking(self):
+        self.client.post(reverse('register_schueler'), {
+            'name': 'Tracking Kind',
+            'email': 'track@test.de',
+            'klassenstufe': 4,
+            'notfall_telefon': '112'
+        })
+        self.client.post(reverse('select_ags'), {'ags': [self.ag1.id]})
+        
+        user = User.objects.get(email='track@test.de')
+        profile = SchuelerProfile.objects.get(user=user, name='Tracking Kind')
+        self.assertTrue(profile.confirmation_email_sent)
+        self.assertFalse(profile.acceptance_email_sent)
+
+    def test_resend_email_view_acceptance(self):
+        user = User.objects.create(username="admin_resend@test.de", is_staff=True)
+        self.client.force_login(user)
+        
+        student_user = User.objects.create(email="student@test.de", username="student@test.de")
+        profile = SchuelerProfile.objects.create(user=student_user, name="Student", klassenstufe=2)
+        Anmeldung.objects.create(schueler=profile, ag=self.ag1, status=Anmeldung.Status.ACCEPTED)
+        
+        self.assertFalse(profile.acceptance_email_sent)
+        
+        res = self.client.post(reverse('resend_email'), {
+            'student_id': profile.id,
+            'email_type': 'acceptance'
+        })
+        
+        self.assertEqual(res.status_code, 302)
+        profile.refresh_from_db()
+        self.assertTrue(profile.acceptance_email_sent)
+
+    def test_send_all_unsent(self):
+        user = User.objects.create(username="admin_unsent@test.de", is_staff=True)
+        self.client.force_login(user)
+        
+        student_user1 = User.objects.create(email="s1@test.de", username="s1@test.de")
+        profile1 = SchuelerProfile.objects.create(user=student_user1, name="S1", klassenstufe=2, acceptance_email_sent=True)
+        Anmeldung.objects.create(schueler=profile1, ag=self.ag1, status=Anmeldung.Status.ACCEPTED)
+        
+        student_user2 = User.objects.create(email="s2@test.de", username="s2@test.de")
+        profile2 = SchuelerProfile.objects.create(user=student_user2, name="S2", klassenstufe=2, acceptance_email_sent=False)
+        Anmeldung.objects.create(schueler=profile2, ag=self.ag1, status=Anmeldung.Status.ACCEPTED)
+        
+        self.client.post(reverse('manual_intervention'), {'action': 'send_all_unsent'})
+        
+        profile1.refresh_from_db()
+        profile2.refresh_from_db()
+        self.assertTrue(profile1.acceptance_email_sent)
+        self.assertTrue(profile2.acceptance_email_sent)

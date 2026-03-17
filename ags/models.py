@@ -52,6 +52,9 @@ class SchuelerProfile(models.Model):
     name = models.CharField(max_length=200, verbose_name="Name des Kindes", default="")
     klassenstufe = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(4)])
     notfall_telefon = models.CharField(max_length=50, verbose_name="Notfall-Telefonnummer", default='')
+    
+    confirmation_email_sent = models.BooleanField(default=False, verbose_name="Anmeldebestätigung gesendet")
+    acceptance_email_sent = models.BooleanField(default=False, verbose_name="Zuteilungsmail gesendet")
 
     class Meta:
         verbose_name = "Schüler"

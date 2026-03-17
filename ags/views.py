@@ -180,6 +180,11 @@ def manual_intervention(request):
             logger.error(f"Unerwarteter Fehler bei manual_intervention (ID: {anm_id}): {e}", exc_info=True)
             messages.error(request, "Ein unerwarteter Fehler ist aufgetreten.")
         
+        if action == 'send_all_unsent':
+            from .emails import send_allocation_emails
+            send_allocation_emails(only_unsent=True)
+            messages.success(request, "Alle fehlenden Zuteilungs-Mails wurden (sofern möglich) erfolgreich versendet.")
+            
         return redirect('manual_intervention')
 
     # Data for display
@@ -190,6 +195,49 @@ def manual_intervention(request):
         'ags': ags,
         'students': students
     })
+
+@user_passes_test(lambda u: u.is_staff)
+def resend_email(request):
+    if request.method == 'POST':
+        student_id = request.POST.get('student_id')
+        email_type = request.POST.get('email_type')
+        
+        try:
+            profile = SchuelerProfile.objects.get(id=student_id)
+            if email_type == 'confirmation':
+                from django.template.loader import render_to_string
+                from django.utils.html import strip_tags
+                anmeldungen = list(Anmeldung.objects.filter(schueler=profile).order_by('prio'))
+                if anmeldungen:
+                    context = {'schueler': profile, 'anmeldungen': anmeldungen}
+                    html_message = render_to_string('ags/emails/registration_confirmation.html', context)
+                    plain_message = strip_tags(html_message)
+                    send_mail(
+                        "Deine Schul-AG Anmeldung",
+                        plain_message,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [profile.user.email],
+                        html_message=html_message,
+                    )
+                    profile.confirmation_email_sent = True
+                    profile.save()
+                    messages.success(request, f"Anmeldebestätigung an {profile.user.email} gesendet.")
+                else:
+                    messages.warning(request, f"Schüler hat keine Anmeldungen.")
+            elif email_type == 'acceptance':
+                from .emails import send_single_acceptance_email
+                success = send_single_acceptance_email(profile)
+                if success:
+                    messages.success(request, f"Zuteilungsmail an {profile.user.email} gesendet.")
+                else:
+                    messages.error(request, f"Fehler beim Senden der Zuteilungsmail an {profile.user.email}.")
+        except SchuelerProfile.DoesNotExist:
+            messages.error(request, "Schüler nicht gefunden.")
+        except Exception as e:
+            logger.error(f"Unerwarteter Fehler beim E-Mail-Nachversand: {e}", exc_info=True)
+            messages.error(request, "Ein Fehler ist aufgetreten.")
+            
+    return redirect('manual_intervention')
 
 @user_passes_test(lambda u: u.is_staff)
 def stats_export(request):
