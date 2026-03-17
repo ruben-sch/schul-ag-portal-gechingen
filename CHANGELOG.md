@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.4.0](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.3.0...v0.4.0) (2026-03-17)
+
+
+### Features
+
+* **emails:** add tracking and manual resend capability for allocation emails ([b5b668f](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/b5b668fffb37796e8703b640cca1382cb6237c22))
+* **emails:** add tracking and resend capability for AG leader emails ([4fb2852](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/4fb2852e26aaafc77c9f8ea7897382c53def501d))
+* **ui:** improve manual intervention view with search and inline priority editing ([6038c4d](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/6038c4dbe89c031fb19085e80e139535f771c1e5))
+
+
+### Bug Fixes
+
+* **reliability:** add transaction safety and better email-send feedback ([53ce3a6](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/53ce3a6217790f949132b3c987ef12ecd4107c3f))
+
+
+### Performance Improvements
+
+* **lottery:** eliminate O(N²) DB queries in Phase 2 of lottery algorithm ([b0aed4a](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/b0aed4a618e434c38f3f907fce02736101a29f8a))
+
 ## [0.3.0](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.2.1...v0.3.0) (2026-03-17)
 
 
