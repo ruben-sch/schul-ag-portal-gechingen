@@ -168,32 +168,48 @@ def manual_intervention(request):
         anm_id = request.POST.get('anmeldung_id')
         
         try:
-            anm = Anmeldung.objects.get(id=anm_id)
-            if action == 'toggle_status':
-                anm.status = Anmeldung.Status.REJECTED if anm.status == Anmeldung.Status.ACCEPTED else Anmeldung.Status.ACCEPTED
-                anm.save()
-                messages.success(request, f"Status für {anm.schueler.name} in {anm.ag.name} geändert.")
+            if action == 'send_all_unsent':
+                from .emails import send_allocation_emails
+                send_allocation_emails(only_unsent=True)
+                messages.success(request, "Alle fehlenden Zuteilungs-Mails wurden (sofern möglich) erfolgreich versendet.")
+            else:
+                anm = Anmeldung.objects.get(id=anm_id)
+                if action == 'toggle_status':
+                    anm.status = Anmeldung.Status.REJECTED if anm.status == Anmeldung.Status.ACCEPTED else Anmeldung.Status.ACCEPTED
+                    anm.save()
+                    messages.success(request, f"Status für {anm.schueler.name} in {anm.ag.name} geändert.")
+                elif action == 'update_prio':
+                    new_prio = request.POST.get('prio')
+                    if new_prio and new_prio.isdigit():
+                        anm.prio = int(new_prio)
+                        anm.save()
+                        messages.success(request, f"Priorität für {anm.schueler.name} in {anm.ag.name} auf {new_prio} aktualisiert.")
         except Anmeldung.DoesNotExist:
             logger.warning(f"Anmeldung mit ID {anm_id} nicht gefunden in manual_intervention.")
             messages.error(request, "Ausgewählte Anmeldung konnte nicht gefunden werden.")
         except Exception as e:
             logger.error(f"Unerwarteter Fehler bei manual_intervention (ID: {anm_id}): {e}", exc_info=True)
             messages.error(request, "Ein unerwarteter Fehler ist aufgetreten.")
-        
-        if action == 'send_all_unsent':
-            from .emails import send_allocation_emails
-            send_allocation_emails(only_unsent=True)
-            messages.success(request, "Alle fehlenden Zuteilungs-Mails wurden (sofern möglich) erfolgreich versendet.")
             
-        return redirect('manual_intervention')
+        # Preserve search query on POST redirect if it exists
+        search_query = request.GET.get('search_query', '')
+        url = reverse('manual_intervention')
+        if search_query:
+            url += f"?search_query={search_query}"
+        return redirect(url)
 
     # Data for display
+    search_query = request.GET.get('search_query', '')
     ags = AG.objects.filter(status=AG.Status.APPROVED).prefetch_related('anmeldungen__schueler')
-    students = SchuelerProfile.objects.prefetch_related('anmeldungen__ag').order_by('name')
     
+    students = SchuelerProfile.objects.prefetch_related('anmeldungen__ag').order_by('name')
+    if search_query:
+        students = students.filter(name__icontains=search_query)
+        
     return render(request, 'ags/manual_intervention.html', {
         'ags': ags,
-        'students': students
+        'students': students,
+        'search_query': search_query
     })
 
 @user_passes_test(lambda u: u.is_staff)
