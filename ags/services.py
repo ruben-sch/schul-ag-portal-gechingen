@@ -32,17 +32,20 @@ def register_or_update_student(user, name, klassenstufe, notfall_telefon):
 
 def update_student_registrations(student_profile, ag_ids):
     """Replaces current registrations for a student with new selections."""
+    from django.db import transaction
+
     available_ags = get_available_ags_for_student(student_profile.klassenstufe)
     available_ids = [str(ag.id) for ag in available_ags]
     
     valid_selections = [ag_id for ag_id in ag_ids if str(ag_id) in available_ids]
     
-    Anmeldung.objects.filter(schueler=student_profile).delete()
-    saved_anmeldungen = []
-    for i, ag_id in enumerate(valid_selections):
-        ag = AG.objects.get(id=ag_id)
-        anm = Anmeldung.objects.create(schueler=student_profile, ag=ag, prio=i+1)
-        saved_anmeldungen.append(anm)
+    with transaction.atomic():
+        Anmeldung.objects.filter(schueler=student_profile).delete()
+        saved_anmeldungen = []
+        for i, ag_id in enumerate(valid_selections):
+            ag = AG.objects.get(id=ag_id)
+            anm = Anmeldung.objects.create(schueler=student_profile, ag=ag, prio=i+1)
+            saved_anmeldungen.append(anm)
         
     try:
         context = {

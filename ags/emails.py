@@ -188,7 +188,10 @@ def send_single_leader_email(ag):
 def send_allocation_emails(only_unsent=False):
     """
     Sends grouped emails to students and detailed lists to leaders.
+    Returns a dict with sent/failed counts for students and leaders.
     """
+    results = {'students_sent': 0, 'students_failed': 0, 'leaders_sent': 0, 'leaders_failed': 0}
+
     # 1. Group emails to Students (only those with ACCEPTED status)
     accepted_anmeldungen = Anmeldung.objects.filter(status=Anmeldung.Status.ACCEPTED).select_related('schueler__user', 'ag')
     student_allocations = defaultdict(list)
@@ -199,11 +202,21 @@ def send_allocation_emails(only_unsent=False):
         student_allocations[anm.schueler].append(anm.ag)
 
     for schueler, ag_list in student_allocations.items():
-        send_single_acceptance_email(schueler, ag_list)
+        success = send_single_acceptance_email(schueler, ag_list)
+        if success:
+            results['students_sent'] += 1
+        else:
+            results['students_failed'] += 1
 
     # 2. Detailed emails to Leaders (Participants + Waitlist)
     ags = AG.objects.filter(status=AG.Status.APPROVED)
     for ag in ags:
         if only_unsent and ag.leader_email_sent:
             continue
-        send_single_leader_email(ag)
+        success = send_single_leader_email(ag)
+        if success:
+            results['leaders_sent'] += 1
+        else:
+            results['leaders_failed'] += 1
+
+    return results
