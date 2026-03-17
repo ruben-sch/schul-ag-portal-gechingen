@@ -39,18 +39,15 @@ def run_lottery():
                         break
         
         # 4. Phase 2: Restliche Plätze so fair wie möglich auffüllen
-        allocated_any = False
+        # Accepted counts einmalig vor der Schleife laden, danach nur im Speicher aktualisieren
+        accepted_counts = {
+            row['schueler_id']: row['total'] 
+            for row in Anmeldung.objects.filter(status=Anmeldung.Status.ACCEPTED)
+                                 .values('schueler_id')
+                                 .annotate(total=Count('id'))
+        }
+
         while True:
-            allocated_any = False
-            
-            # Recalculate how many AGs each student has
-            accepted_counts = {
-                row['schueler_id']: row['total'] 
-                for row in Anmeldung.objects.filter(status=Anmeldung.Status.ACCEPTED)
-                                     .values('schueler_id')
-                                     .annotate(total=Count('id'))
-            }
-            
             # Find all rejected wishes where the AG still has space
             potential_wishes = []
             for wish in Anmeldung.objects.filter(status=Anmeldung.Status.REJECTED, ag__status=AG.Status.APPROVED).order_by('prio'):
@@ -72,9 +69,7 @@ def run_lottery():
             best_wish.status = 'ACCEPTED'
             best_wish.save()
             current_counts[best_wish.ag_id] += 1
-            allocated_any = True
-            
-            if not allocated_any:
-                break
+            # Im Speicher hochzählen – kein erneuter DB-Query nötig
+            accepted_counts[best_wish.schueler_id] = accepted_counts.get(best_wish.schueler_id, 0) + 1
 
         print("Zuteilung abgeschlossen.")
