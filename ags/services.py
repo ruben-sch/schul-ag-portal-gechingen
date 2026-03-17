@@ -58,9 +58,14 @@ def update_student_registrations(student_profile, ag_ids):
             [student_profile.user.email],
             html_message=html_message,
         )
+        student_profile.confirmation_email_sent = True
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning("Could not send confirmation email: %s", e)
+        student_profile.confirmation_email_sent = False
+        
+    student_profile.acceptance_email_sent = False
+    student_profile.save()
     
     return len(valid_selections) == len(ag_ids)
 
