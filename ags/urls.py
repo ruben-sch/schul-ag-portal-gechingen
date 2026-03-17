@@ -13,6 +13,7 @@ urlpatterns = [
     path('stats/export-csv/', views.export_ags_csv, name='export_ags_csv'),
     path('manual-intervention/', views.manual_intervention, name='manual_intervention'),
     path('resend-email/', views.resend_email, name='resend_email'),
+    path('resend-leader-email/', views.resend_leader_email, name='resend_leader_email'),
     path('run-lottery-internal/', views.run_lottery_view, name='run_lottery_internal'),
     path('test-email/', views.test_email, name='test_email'),
     path('impressum/', views.impressum, name='impressum'),

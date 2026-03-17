@@ -184,3 +184,40 @@ class ViewTest(TestCase):
         self.assertEqual(res.status_code, 302)
         anm.refresh_from_db()
         self.assertEqual(anm.prio, 4)
+
+    def test_leader_email_tracking_send_all(self):
+        user = User.objects.create(username="admin_leader_unsent@test.de", is_staff=True)
+        self.client.force_login(user)
+        
+        # Test default unsent leader email state
+        self.assertFalse(self.ag1.leader_email_sent)
+        
+        # Add a student to trigger an email for this AG
+        student_user = User.objects.create(email="s_leader1@test.de", username="s_leader1@test.de")
+        profile = SchuelerProfile.objects.create(user=student_user, name="SL1", klassenstufe=2, acceptance_email_sent=True)
+        Anmeldung.objects.create(schueler=profile, ag=self.ag1, status=Anmeldung.Status.ACCEPTED)
+
+        # Trigger bulk send (should send leader email for ag1)
+        self.client.post(reverse('manual_intervention'), {'action': 'send_all_unsent'})
+        
+        self.ag1.refresh_from_db()
+        self.assertTrue(self.ag1.leader_email_sent, "Leader email tracking should be set to True after send_all_unsent")
+
+    def test_resend_email_view_leader(self):
+        user = User.objects.create(username="admin_resend_leader@test.de", is_staff=True)
+        self.client.force_login(user)
+        
+        self.assertFalse(self.ag1.leader_email_sent)
+        
+        # Add a student to trigger an email
+        student_user = User.objects.create(email="s_leader2@test.de", username="s_leader2@test.de")
+        profile = SchuelerProfile.objects.create(user=student_user, name="SL2", klassenstufe=2)
+        Anmeldung.objects.create(schueler=profile, ag=self.ag1, status=Anmeldung.Status.ACCEPTED)
+        
+        res = self.client.post(reverse('resend_leader_email'), {
+            'ag_id': self.ag1.id,
+        })
+        
+        self.assertEqual(res.status_code, 302)
+        self.ag1.refresh_from_db()
+        self.assertTrue(self.ag1.leader_email_sent, "Leader email tracking should be set to True after explicit resend")
