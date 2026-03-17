@@ -65,6 +65,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const checkboxes = document.querySelectorAll('.form-check-input');
+        const form = document.querySelector('form');
         let selectedOrder = [];
 
         function updatePriorities() {
@@ -93,6 +94,22 @@
                     selectedOrder = selectedOrder.filter(item => item !== this);
                 }
                 updatePriorities();
+            });
+        });
+
+        // On submit: inject hidden inputs in click-order (= priority order)
+        // and remove checkbox names so they don't pollute the POST data
+        form.addEventListener('submit', function () {
+            // Remove name from all checkboxes so they don't appear in POST
+            checkboxes.forEach(cb => cb.removeAttribute('name'));
+
+            // Inject hidden inputs in the correct priority order
+            selectedOrder.forEach(checkbox => {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = 'ags';
+                hidden.value = checkbox.value;
+                form.appendChild(hidden);
             });
         });
     });
