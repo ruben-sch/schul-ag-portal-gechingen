@@ -7,113 +7,152 @@
     <style>
         body {
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
+            background-color: #f1f5f9;
+            color: #1e293b;
             margin: 0;
             padding: 0;
             line-height: 1.6;
         }
 
         .wrapper {
-            background-color: #0f172a;
+            background-color: #f1f5f9;
             padding: 40px 20px;
         }
 
         .container {
             max-width: 600px;
             margin: 0 auto;
-            background-color: #1e293b;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         }
 
         .header {
-            padding: 30px;
+            padding: 28px 30px;
             text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            background: linear-gradient(to right, #01017a, #03039d);
+            border-bottom: 1px solid #e2e8f0;
+            background: linear-gradient(135deg, #01017a 0%, #03039d 100%);
         }
 
         .logo-box {
             display: inline-block;
             background: white;
-            padding: 5px 10px;
-            border-radius: 4px;
+            padding: 6px 12px;
+            border-radius: 6px;
         }
 
         .content {
-            padding: 30px;
+            padding: 36px 30px;
+            color: #1e293b;
         }
 
         .footer {
             padding: 20px;
             text-align: center;
             font-size: 12px;
-            color: #94a3b8;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+            background-color: #f8fafc;
+        }
+
+        .footer a {
+            color: #64748b;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            color: #334155;
         }
 
         h1,
         h2,
         h3 {
-            color: #f8fafc;
+            color: #0f172a;
             margin-top: 0;
         }
 
+        h1 {
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        h2 {
+            font-size: 18px;
+            color: #1e293b;
+        }
+
         p {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.2rem;
+            color: #334155;
         }
 
         ul {
             padding-left: 20px;
             margin-bottom: 1.5rem;
+            color: #334155;
         }
 
         li {
-            margin-bottom: 0.75rem;
+            margin-bottom: 1rem;
         }
 
         .ag-item {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 15px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #01017a;
+            padding: 16px 18px;
+            border-radius: 8px;
+            margin-bottom: 14px;
         }
 
         .ag-title {
             font-weight: 700;
-            color: #818cf8;
-            font-size: 18px;
-            margin-bottom: 5px;
+            color: #01017a;
+            font-size: 17px;
+            margin-bottom: 8px;
+        }
+
+        .text-muted {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .text-muted strong {
+            color: #475569;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
+            font-size: 14px;
         }
 
         th {
             text-align: left;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            color: #94a3b8;
-            font-size: 13px;
+            padding: 10px 12px;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 12px;
             text-transform: uppercase;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #e2e8f0;
         }
 
         td {
-            padding: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 14px;
+            padding: 11px 12px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
         }
 
-        .text-muted {
-            color: #94a3b8;
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #f8fafc;
         }
     </style>
 </head>
@@ -133,13 +172,13 @@
             <div class="footer">
                 <small>
                     <a href="https://github.com/ruben-sch/schul-ag-portal-gechingen" target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-secondary text-decoration-none border-bottom border-secondary pb-1 hover-text-light transition-all me-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                            class="bi bi-github mb-1" viewBox="0 0 16 16">
+                        rel="noopener noreferrer">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                            viewBox="0 0 16 16" style="vertical-align: middle; margin-right: 4px;">
                             <path
                                 d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8" />
-                        </svg> GitHub
+                        </svg>
+                        AG-Portal Gechingen
                     </a>
                 </small>
             </div>
