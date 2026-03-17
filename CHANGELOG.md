@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.2.1...v0.3.0) (2026-03-17)
+
+
+### Features
+
+* helles email layout ([8e4cd50](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/8e4cd508b15801d6cca0b0d0fee7120677301c32))
+
+
+### Bug Fixes
+
+* Convert selected AG checkboxes to ordered hidden inputs on form submission to preserve priority. ([cdacfb1](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/cdacfb1d306f61655b3a83f982f44bb3170bee16))
+
 ## [0.2.1](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.2.0...v0.2.1) (2026-03-03)
 
 
