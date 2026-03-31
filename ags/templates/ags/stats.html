@@ -3,26 +3,60 @@
 {% block title %}Statistik Dashboard - AG-Portal{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-5 mt-4">
-    <div class="mb-3 mb-md-0">
-        <h1 class="display-5 text-light mb-2">Zuteilungs-Statistik</h1>
-        <p class="lead text-secondary mb-0">Auswertung des Losverfahrens und der aktuellen Auslastung.</p>
-    </div>
+<div class="mb-4 mt-4">
+    <h1 class="display-5 text-light mb-2">Zuteilungs-Statistik</h1>
+    <p class="lead text-secondary mb-0">Auswertung des Losverfahrens und der aktuellen Auslastung.</p>
+</div>
+
+<ul class="nav nav-tabs border-secondary border-opacity-50 mb-4">
+  <li class="nav-item">
+    <a class="nav-link {% if tab == 'general' %}active bg-brand-primary fw-bold border-brand-primary{% else %}text-light bg-dark border-secondary border-opacity-25{% endif %}" href="?tab=general">Allgemeine Statistiken & Funktionen</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link ms-2 {% if tab == 'ags' %}active bg-brand-primary fw-bold border-brand-primary{% else %}text-light bg-dark border-secondary border-opacity-25{% endif %}" href="?tab=ags">AG Statistiken</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link ms-2 {% if tab == 'students' %}active bg-brand-primary fw-bold border-brand-primary{% else %}text-light bg-dark border-secondary border-opacity-25{% endif %}" href="?tab=students">Schüler Statistiken</a>
+  </li>
+</ul>
+
+{% if tab == 'general' %}
+<div class="glass-card p-4 mb-5">
+    <h2 class="h5 text-secondary mb-4 text-uppercase tracking-wide">Verwaltungs-Funktionen</h2>
     <div class="d-flex flex-wrap gap-2 align-items-center">
         <a href="{% url 'stats_export' %}" target="_blank"
             class="btn btn-outline-light d-flex align-items-center gap-2">
-            <span>📄</span> PDF/Druck
+            <span>📄</span> PDF/Druck Liste
         </a>
         <a href="{% url 'export_ags_csv' %}" class="btn btn-outline-info d-flex align-items-center gap-2">
-            <span>📊</span> CSV (Flyer)
+            <span>📊</span> CSV Flyer-Export
         </a>
         <a href="{% url 'manual_intervention' %}" class="btn btn-outline-light d-flex align-items-center gap-2">
-            <span>✏️</span> Korrektur
+            <span>✏️</span> Manuelle Korrektur
         </a>
         <a href="{% url 'test_email' %}" class="btn btn-outline-light d-flex align-items-center gap-2">
-            <span>✉️</span> E-Mail-Test
+            <span>✉️</span> Test-E-Mail
         </a>
-        <a href="/run-lottery-internal/" class="btn btn-brand-primary">Losverfahren jetzt starten</a>
+        
+        <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0 d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="target" value="leaders">
+            <button type="submit" class="btn btn-outline-light d-flex align-items-center gap-2" onclick="return confirm('Möchtest du allen AG-Leitern ihre Teilnehmerlisten senden? (Es werden nur noch nicht versendete Mails verschickt)')">
+                <span>📧</span> Fehlende AG-Leiter Mails
+            </button>
+        </form>
+
+        <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0 d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="target" value="students">
+            <button type="submit" class="btn btn-outline-light d-flex align-items-center gap-2" onclick="return confirm('Möchtest du allen Schülern ihre Zuteilungen senden? (Es werden nur noch nicht versendete Mails verschickt)')">
+                <span>📧</span> Fehlende Schüler Mails
+            </button>
+        </form>
+
+        <div class="ms-md-auto mt-2 mt-md-0">
+            <a href="/run-lottery-internal/" class="btn btn-brand-primary">Losverfahren jetzt starten</a>
+        </div>
     </div>
 </div>
 
@@ -52,6 +86,7 @@
         </div>
     </div>
 </div>
+{% elif tab == 'ags' %}
 
 <div class="glass-card p-4 p-md-5 mb-5">
     <h2 class="h3 text-light mb-4 pb-3 border-bottom border-secondary border-opacity-25">Auslastung & Teilnehmerlisten
@@ -87,7 +122,9 @@
                             <ul class="list-unstyled ps-3 mb-4 border-start border-success border-opacity-25">
                                 {% for anm in ag.accepted_list %}
                                 <li class="mb-1 text-light">{{ anm.schueler.name }} <span
-                                        class="text-secondary ms-1">({{ anm.schueler.user.email }})</span></li>
+                                        class="text-secondary ms-1">({{ anm.schueler.user.email }})</span>
+                                    <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary ms-2 fw-normal">Prio {{ anm.prio }}</span>
+                                </li>
                                 {% empty %}
                                 <li class="text-secondary fst-italic">- Keine -</li>
                                 {% endfor %}
@@ -162,22 +199,32 @@
         </table>
     </div>
 </div>
+{% elif tab == 'students' %}
 
 <div class="glass-card p-4 p-md-5 mb-5">
     <h2 class="h3 text-light mb-4">Schüler-Übersicht</h2>
 
     <form method="get" class="row g-3 mb-4 pb-4 border-bottom border-secondary border-opacity-25 align-items-center">
-        <div class="col-12 col-md-5 col-lg-6">
+        <div class="col-12 col-md-4 col-lg-4">
             <input type="text" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary"
                 name="student_search" value="{{ search_query }}" placeholder="Name suchen...">
         </div>
-        <div class="col-6 col-md-3 col-lg-3">
+        <div class="col-6 col-md-2 col-lg-2">
             <input type="number" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary"
                 name="min_ags" value="{{ min_ag_filter }}" placeholder="Mind. X AGs">
         </div>
-        <div class="col-6 col-md-4 col-lg-3 d-flex gap-2">
+        <div class="col-6 col-md-3 col-lg-3">
+            <select class="form-select bg-dark text-light border-secondary focus-ring focus-ring-primary" name="sort_by">
+                <option value="name" {% if sort_by == 'name' or not sort_by %}selected{% endif %}>Name (A-Z)</option>
+                <option value="-name" {% if sort_by == '-name' %}selected{% endif %}>Name (Z-A)</option>
+                <option value="-accepted_count" {% if sort_by == '-accepted_count' %}selected{% endif %}>Anzahl AGs (absteigend)</option>
+                <option value="accepted_count" {% if sort_by == 'accepted_count' %}selected{% endif %}>Anzahl AGs (aufsteigend)</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-3 col-lg-3 d-flex gap-2">
+            <input type="hidden" name="tab" value="students">
             <button type="submit" class="btn btn-brand-primary w-50">Filtern</button>
-            <a href="?" class="btn btn-outline-light w-50">Reset</a>
+            <a href="?tab=students" class="btn btn-outline-light w-50">Reset</a>
         </div>
     </form>
 
@@ -204,10 +251,14 @@
                             {% for anm in student.anmeldungen.all %}
                             {% if anm.status == 'ACCEPTED' %}
                             <div class="text-success fw-medium"><i class="bi bi-check-circle-fill me-2"></i>
-                                {{ anm.ag.name }}</div>
+                                {{ anm.ag.name }}
+                                <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary ms-2 fw-normal">Prio {{ anm.prio }}</span>
+                            </div>
                             {% else %}
                             <div class="text-secondary"><i class="bi bi-hourglass text-warning opacity-75 me-2"></i>
-                                {{ anm.ag.name }} <span class="opacity-50">(Warteliste)</span></div>
+                                {{ anm.ag.name }} <span class="opacity-50">(Warteliste)</span>
+                                <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary ms-2 fw-normal">Prio {{ anm.prio }}</span>
+                            </div>
                             {% endif %}
                             {% endfor %}
                         </div>
@@ -230,6 +281,7 @@
         </table>
     </div>
 </div>
+{% endif %}
 
 <div class="text-center text-md-start">
     <a href="{% url 'landing' %}" class="btn btn-outline-light px-4">Zurück zur Startseite</a>
