@@ -41,14 +41,17 @@
                     {% for ag in ag_stats %}
                     <tr style="break-inside: avoid;">
                         <td class="py-2"><strong class="text-dark">{{ ag.name }}</strong></td>
-                        <td class="py-2">{{ ag.verantwortlicher_name }}</td>
+                        <td class="py-2">
+                            {{ ag.verantwortlicher_name }}</br>
+                            {{ ag.verantwortlicher_email }}</br>
+                            {{ ag.verantwortlicher_telefon }}</br>
+                        </td>
                         <td class="py-2 text-center">{{ ag.kapazitaet }}</td>
                         <td class="py-2 small">
                             {% for anm in ag.anmeldungen.all %}
                             {% if anm.status == 'ACCEPTED' %}
                             {{ anm.schueler.name }}
-                            <span class="badge bg-secondary rounded-pill fw-normal">P{{ anm.prio }}</span>
-                            {% if not forloop.last %}, {% endif %}
+                            <span class="badge bg-secondary rounded-pill fw-normal">P{{ anm.prio }}</span></br>
                             {% endif %}
                             {% empty %}
                             <span class="fst-italic text-secondary">-</span>
@@ -58,8 +61,7 @@
                             {% for anm in ag.anmeldungen.all %}
                             {% if anm.status != 'ACCEPTED' %}
                             {{ anm.schueler.name }}
-                            <span class="badge bg-secondary rounded-pill fw-normal">P{{ anm.prio }}</span>
-                            {% if not forloop.last %}, {% endif %}
+                            <span class="badge bg-secondary rounded-pill fw-normal">P{{ anm.prio }}</span></br>
                             {% endif %}
                             {% endfor %}
                         </td>
