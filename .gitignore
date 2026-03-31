@@ -24,3 +24,5 @@ archives/*.json
 .idea/
 
 id_*
+
+prod_dump.dump

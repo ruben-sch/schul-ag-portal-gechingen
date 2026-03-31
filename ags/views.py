@@ -3,7 +3,7 @@ from smtplib import SMTPException
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib import messages
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.urls import reverse, reverse_lazy
 from django.views.generic import TemplateView, CreateView, FormView
 from django.conf import settings
@@ -140,19 +140,23 @@ def dashboard(request):
 
 @user_passes_test(lambda u: u.is_staff)
 def stats_dashboard(request):
-    stats = services.get_portal_stats()
+    tab = request.GET.get('tab', 'general')
+    stats = services.get_portal_stats() if tab in ['general', 'ags'] else {}
     
-    # Per Student stats
+    # Per Student stats if needed
     search_query = request.GET.get('student_search', '')
     min_ag_filter = request.GET.get('min_ags', '')
+    sort_by = request.GET.get('sort_by', 'name')
     
-    students = services.get_students_with_stats(search_query, min_ag_filter)
+    students = services.get_students_with_stats(search_query, min_ag_filter, sort_by) if tab == 'students' else []
 
     return render(request, 'ags/stats.html', {
         **stats,
         'students': students,
         'search_query': search_query,
-        'min_ag_filter': min_ag_filter
+        'min_ag_filter': min_ag_filter,
+        'sort_by': sort_by,
+        'tab': tab
     })
 
 @user_passes_test(lambda u: u.is_staff)
@@ -242,13 +246,15 @@ def resend_email(request):
                     context = {'schueler': profile, 'anmeldungen': anmeldungen}
                     html_message = render_to_string('ags/emails/registration_confirmation.html', context)
                     plain_message = strip_tags(html_message)
-                    send_mail(
-                        "Deine Schul-AG Anmeldung",
-                        plain_message,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [profile.user.email],
-                        html_message=html_message,
+                    msg = EmailMultiAlternatives(
+                        subject="Deine Schul-AG Anmeldung",
+                        body=plain_message,
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        to=[profile.user.email],
+                        bcc=['eltern-ags-sgs@googlegroups.com']
                     )
+                    msg.attach_alternative(html_message, "text/html")
+                    msg.send()
                     profile.confirmation_email_sent = True
                     profile.save()
                     messages.success(request, f"Anmeldebestätigung an {profile.user.email} gesendet.")
@@ -307,13 +313,14 @@ def test_email(request):
             messages.error(request, "Dein Benutzerkonto hat keine E-Mail-Adresse hinterlegt.")
             return redirect('stats_dashboard')
             
-        send_mail(
+        msg = EmailMultiAlternatives(
             subject='Geplante Test-E-Mail (AG-Portal)',
-            message=f'Hallo {request.user.first_name},\n\ndies ist eine Test-E-Mail aus dem AG-Portal. Wenn diese Nachricht ankommt, ist der E-Mail-Versand korrekt konfiguriert.\n\nViele Grüße,\nDein AG-Portal System',
-            from_email=None,  # Uses DEFAULT_FROM_EMAIL
-            recipient_list=[user_email],
-            fail_silently=False,
+            body=f'Hallo {request.user.first_name},\n\ndies ist eine Test-E-Mail aus dem AG-Portal. Wenn diese Nachricht ankommt, ist der E-Mail-Versand korrekt konfiguriert.\n\nViele Grüße,\nDein AG-Portal System',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user_email],
+            bcc=['eltern-ags-sgs@googlegroups.com']
         )
+        msg.send(fail_silently=False)
         messages.success(request, f"Test-E-Mail wurde erfolgreich an {user_email} (oder an die Konsole) versendet.")
     except SMTPException as e:
         logger.error(f"SMTP Fehler beim E-Mail-Versand an {user_email}: {e}", exc_info=True)
@@ -393,3 +400,35 @@ def export_ags_csv(request):
         
     return response
 
+@user_passes_test(lambda u: u.is_staff)
+def send_bulk_emails_view(request):
+    if request.method == 'POST':
+        target = request.POST.get('target')
+        from .emails import send_allocation_emails
+        
+        if target == 'students':
+            results = send_allocation_emails(only_unsent=True, send_students=True, send_leaders=False)
+            s_sent = results.get('students_sent', 0)
+            s_fail = results.get('students_failed', 0)
+            msg = f"{s_sent} Schüler-Mails erfolgreich gesendet."
+            if s_fail > 0:
+                msg += f" {s_fail} Schüler-Mails konnten nicht gesendet werden."
+                messages.warning(request, msg)
+            else:
+                messages.success(request, msg)
+                
+        elif target == 'leaders':
+            results = send_allocation_emails(only_unsent=True, send_students=False, send_leaders=True)
+            l_sent = results.get('leaders_sent', 0)
+            l_fail = results.get('leaders_failed', 0)
+            msg = f"{l_sent} AG-Leiter-Mails erfolgreich gesendet."
+            if l_fail > 0:
+                msg += f" {l_fail} AG-Leiter-Mails konnten nicht gesendet werden."
+                messages.warning(request, msg)
+            else:
+                messages.success(request, msg)
+                
+        else:
+            messages.error(request, "Ungültiges Zielfeld für den E-Mail-Versand.")
+            
+    return redirect(reverse('stats_dashboard') + '?tab=general')

@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Min, Max, Q
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
@@ -54,13 +54,15 @@ def update_student_registrations(student_profile, ag_ids):
         }
         html_message = render_to_string('ags/emails/registration_confirmation.html', context)
         plain_message = strip_tags(html_message)
-        send_mail(
-            "Deine Schul-AG Anmeldung",
-            plain_message,
-            settings.DEFAULT_FROM_EMAIL,
-            [student_profile.user.email],
-            html_message=html_message,
+        msg = EmailMultiAlternatives(
+            subject="Deine Schul-AG Anmeldung",
+            body=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[student_profile.user.email],
+            bcc=['eltern-ags-sgs@googlegroups.com']
         )
+        msg.attach_alternative(html_message, "text/html")
+        msg.send()
         student_profile.confirmation_email_sent = True
     except Exception as e:
         import logging
@@ -137,11 +139,11 @@ def get_portal_stats():
         'ag_stats': ag_stats
     }
 
-def get_students_with_stats(search_query=None, min_ag_filter=None):
-    """Returns students with their accepted AG count, optionally filtered."""
+def get_students_with_stats(search_query=None, min_ag_filter=None, sort_by='name'):
+    """Returns students with their accepted AG count, optionally filtered and sorted."""
     students = SchuelerProfile.objects.annotate(
         accepted_count=Count('anmeldungen', filter=Q(anmeldungen__status=Anmeldung.Status.ACCEPTED))
-    ).prefetch_related('anmeldungen__ag').order_by('name')
+    ).prefetch_related('anmeldungen__ag')
     
     if search_query:
         students = students.filter(name__icontains=search_query)
@@ -151,5 +153,12 @@ def get_students_with_stats(search_query=None, min_ag_filter=None):
             students = students.filter(accepted_count__gte=int(min_ag_filter))
         except ValueError:
             pass
+            
+    if sort_by in ['name', '-name']:
+        students = students.order_by(sort_by)
+    elif sort_by in ['accepted_count', '-accepted_count']:
+        students = students.order_by(sort_by, 'name')
+    else:
+        students = students.order_by('name')
             
     return students

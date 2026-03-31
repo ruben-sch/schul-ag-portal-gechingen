@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
-from django.core.mail import send_mail, EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
@@ -116,13 +116,15 @@ def send_single_acceptance_email(schueler, ag_list=None):
     plain_message = strip_tags(html_message)
     
     try:
-        send_mail(
-            subject,
-            plain_message,
-            settings.DEFAULT_FROM_EMAIL,
-            [schueler.user.email],
-            html_message=html_message,
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body=plain_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[schueler.user.email],
+            bcc=['eltern-ags-sgs@googlegroups.com']
         )
+        msg.attach_alternative(html_message, "text/html")
+        msg.send()
         schueler.acceptance_email_sent = True
         schueler.save()
         return True
@@ -162,7 +164,8 @@ def send_single_leader_email(ag):
             subject=subject,
             body=plain_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[ag.verantwortlicher_email]
+            to=[ag.verantwortlicher_email],
+            bcc=['eltern-ags-sgs@googlegroups.com']
         )
         msg.attach_alternative(html_message, "text/html")
         
@@ -185,7 +188,7 @@ def send_single_leader_email(ag):
         logger.error(f"Failed to send leader email for {ag.name} to {ag.verantwortlicher_email}: {e}")
         return False
 
-def send_allocation_emails(only_unsent=False):
+def send_allocation_emails(only_unsent=False, send_students=True, send_leaders=True):
     """
     Sends grouped emails to students and detailed lists to leaders.
     Returns a dict with sent/failed counts for students and leaders.
@@ -193,30 +196,32 @@ def send_allocation_emails(only_unsent=False):
     results = {'students_sent': 0, 'students_failed': 0, 'leaders_sent': 0, 'leaders_failed': 0}
 
     # 1. Group emails to Students (only those with ACCEPTED status)
-    accepted_anmeldungen = Anmeldung.objects.filter(status=Anmeldung.Status.ACCEPTED).select_related('schueler__user', 'ag')
-    student_allocations = defaultdict(list)
-    
-    for anm in accepted_anmeldungen:
-        if only_unsent and anm.schueler.acceptance_email_sent:
-            continue
-        student_allocations[anm.schueler].append(anm.ag)
+    if send_students:
+        accepted_anmeldungen = Anmeldung.objects.filter(status=Anmeldung.Status.ACCEPTED).select_related('schueler__user', 'ag')
+        student_allocations = defaultdict(list)
+        
+        for anm in accepted_anmeldungen:
+            if only_unsent and anm.schueler.acceptance_email_sent:
+                continue
+            student_allocations[anm.schueler].append(anm.ag)
 
-    for schueler, ag_list in student_allocations.items():
-        success = send_single_acceptance_email(schueler, ag_list)
-        if success:
-            results['students_sent'] += 1
-        else:
-            results['students_failed'] += 1
+        for schueler, ag_list in student_allocations.items():
+            success = send_single_acceptance_email(schueler, ag_list)
+            if success:
+                results['students_sent'] += 1
+            else:
+                results['students_failed'] += 1
 
     # 2. Detailed emails to Leaders (Participants + Waitlist)
-    ags = AG.objects.filter(status=AG.Status.APPROVED)
-    for ag in ags:
-        if only_unsent and ag.leader_email_sent:
-            continue
-        success = send_single_leader_email(ag)
-        if success:
-            results['leaders_sent'] += 1
-        else:
-            results['leaders_failed'] += 1
+    if send_leaders:
+        ags = AG.objects.filter(status=AG.Status.APPROVED)
+        for ag in ags:
+            if only_unsent and ag.leader_email_sent:
+                continue
+            success = send_single_leader_email(ag)
+            if success:
+                results['leaders_sent'] += 1
+            else:
+                results['leaders_failed'] += 1
 
     return results
