@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.6.0...v0.7.0) (2026-09-27)
+
+
+### Features
+
+* add docker agent skills ([d2f4d86](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/d2f4d867e80af3332e262a32b88a55a23b55fbfa))
+* enforce maximum limit of 5 AG selections and priority values between 1 and 5 ([dc41a0b](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/dc41a0bd38a6ea7320e2ad80fbb6090f328253b0))
+
 ## [0.6.0](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.5.0...v0.6.0) (2026-03-31)
 
 
