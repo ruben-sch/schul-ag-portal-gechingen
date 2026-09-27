@@ -5,10 +5,20 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-12 col-lg-10">
-        <h1 class="text-light mb-2">Verfügbare AGs</h1>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+            <h1 class="text-light mb-0">Verfügbare AGs</h1>
+            <span id="selection-counter" class="badge bg-secondary fs-6 py-2 px-3">0 von 5 AGs gewählt</span>
+        </div>
         <p class="text-secondary mb-4">
-            Wähle deine Wunsch-AGs für Klasse {{ reg_data.klassenstufe }}. Die Reihenfolge bestimmt deine Priorität.
+            Wähle bis zu 5 Wunsch-AGs für Klasse {{ reg_data.klassenstufe }}. Die Reihenfolge bestimmt deine Priorität (Priorität 1 bis 5).
         </p>
+
+        <div id="max-limit-alert" class="alert alert-warning d-none align-items-center mb-4" role="alert" aria-live="polite">
+            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 flex-shrink-0"></i>
+            <div>
+                <strong>Maximale Anzahl erreicht:</strong> Du hast die maximale Anzahl von 5 Wunsch-AGs ausgewählt. Es können keine weiteren AGs ausgewählt werden. Du kannst jedoch eine bereits ausgewählte AG abwählen, um eine andere zu wählen.
+            </div>
+        </div>
 
         <form method="post">
             {% csrf_token %}
@@ -66,9 +76,12 @@
     document.addEventListener('DOMContentLoaded', function () {
         const checkboxes = document.querySelectorAll('.form-check-input');
         const form = document.querySelector('form');
+        const counter = document.getElementById('selection-counter');
+        const limitAlert = document.getElementById('max-limit-alert');
+        const MAX_SELECTIONS = 5;
         let selectedOrder = [];
 
-        function updatePriorities() {
+        function updateUI() {
             // Unhide all priorities first to reset
             document.querySelectorAll('.prio-badge').forEach(badge => badge.classList.add('d-none'));
 
@@ -78,10 +91,54 @@
                 if (badge) {
                     badge.textContent = 'Prio ' + (index + 1);
                     badge.classList.remove('d-none');
-                    // Add some animation to highlight the change
                     badge.classList.remove('scale-in');
                     void badge.offsetWidth; // trigger reflow
                     badge.classList.add('scale-in');
+                }
+            });
+
+            // Update counter
+            if (counter) {
+                counter.textContent = `${selectedOrder.length} von ${MAX_SELECTIONS} AGs gewählt`;
+                if (selectedOrder.length >= MAX_SELECTIONS) {
+                    counter.classList.remove('bg-secondary');
+                    counter.classList.add('bg-warning', 'text-dark');
+                } else {
+                    counter.classList.remove('bg-warning', 'text-dark');
+                    counter.classList.add('bg-secondary');
+                }
+            }
+
+            // Check if limit is reached
+            const limitReached = selectedOrder.length >= MAX_SELECTIONS;
+
+            if (limitAlert) {
+                if (limitReached) {
+                    limitAlert.classList.remove('d-none');
+                    limitAlert.classList.add('d-flex');
+                } else {
+                    limitAlert.classList.add('d-none');
+                    limitAlert.classList.remove('d-flex');
+                }
+            }
+
+            // Disable/enable unchecked AG cards
+            checkboxes.forEach(cb => {
+                const card = cb.closest('.ag-select-card');
+                if (limitReached && !cb.checked) {
+                    cb.disabled = true;
+                    if (card) {
+                        card.classList.add('opacity-50');
+                        card.style.cursor = 'not-allowed';
+                        card.style.pointerEvents = 'none';
+                    }
+                } else {
+                    cb.disabled = false;
+                    if (card) {
+                        card.classList.remove('opacity-50');
+                        card.style.cursor = 'pointer';
+                        card.style.pointerEvents = '';
+                    }
                 }
             });
         }
@@ -89,29 +146,48 @@
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function () {
                 if (this.checked) {
+                    if (selectedOrder.length >= MAX_SELECTIONS) {
+                        this.checked = false;
+                        return;
+                    }
                     selectedOrder.push(this);
                 } else {
                     selectedOrder = selectedOrder.filter(item => item !== this);
                 }
-                updatePriorities();
+                updateUI();
             });
         });
+
+        // Initialize state in case checkboxes are pre-checked (e.g. browser back button)
+        checkboxes.forEach(cb => {
+            if (cb.checked && selectedOrder.length < MAX_SELECTIONS) {
+                selectedOrder.push(cb);
+            }
+        });
+        updateUI();
 
         // On submit: inject hidden inputs in click-order (= priority order)
         // and remove checkbox names so they don't pollute the POST data
-        form.addEventListener('submit', function () {
-            // Remove name from all checkboxes so they don't appear in POST
-            checkboxes.forEach(cb => cb.removeAttribute('name'));
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                if (selectedOrder.length > MAX_SELECTIONS) {
+                    e.preventDefault();
+                    return;
+                }
 
-            // Inject hidden inputs in the correct priority order
-            selectedOrder.forEach(checkbox => {
-                const hidden = document.createElement('input');
-                hidden.type = 'hidden';
-                hidden.name = 'ags';
-                hidden.value = checkbox.value;
-                form.appendChild(hidden);
+                // Remove name from all checkboxes so they don't appear in POST
+                checkboxes.forEach(cb => cb.removeAttribute('name'));
+
+                // Inject hidden inputs in the correct priority order
+                selectedOrder.forEach(checkbox => {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'ags';
+                    hidden.value = checkbox.value;
+                    form.appendChild(hidden);
+                });
             });
-        });
+        }
     });
 </script>
 {% endblock %}

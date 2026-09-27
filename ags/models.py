@@ -82,6 +82,8 @@ class Anmeldung(models.Model):
 
     def clean(self):
         from django.core.exceptions import ValidationError
+        if self.prio < 1 or self.prio > 5:
+            raise ValidationError(f"Priorität muss zwischen 1 und 5 liegen (aktuell: {self.prio}).")
         profile = self.schueler
         if profile:
             if self.ag.klassenstufe_min > profile.klassenstufe or self.ag.klassenstufe_max < profile.klassenstufe:

@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "skills": {
+    "docker-agent-config": {
+      "source": "docker/skills",
+      "sourceType": "github",
+      "skillPath": "skills/docker-agent-config/SKILL.md",
+      "computedHash": "0ba75b810419e08f78ef3a8d4a3f4f1d35c88d7f4b05aed67d99d177b3b39853"
+    },
+    "docker-agent-deploy": {
+      "source": "docker/skills",
+      "sourceType": "github",
+      "skillPath": "skills/docker-agent-deploy/SKILL.md",
+      "computedHash": "faafd9cddd3ec875172994222b9029ef9278d7a4506a7634551f13cd662dc6ad"
+    },
+    "docker-agent-run": {
+      "source": "docker/skills",
+      "sourceType": "github",
+      "skillPath": "skills/docker-agent-run/SKILL.md",
+      "computedHash": "efe523157ca2debbe970be3d5a78f88424fad4e10db529b91d001cfb8e9491ba"
+    },
+    "docker-build-strategies": {
+      "source": "docker/skills",
+      "sourceType": "github",
+      "skillPath": "skills/docker-build-strategies/SKILL.md",
+      "computedHash": "867b87cc16179996bef45f25bdc9338ee388705ca8d782e868ddef7d3e2b803a"
+    },
+    "docker-compose-patterns": {
+      "source": "docker/skills",
+      "sourceType": "github",
+      "skillPath": "skills/docker-compose-patterns/SKILL.md",
+      "computedHash": "cf1d226058c6a17d6f8336bd18afb5d9fda8cf45e8b46dbcc6578fdcfbe42a32"
+    },
+    "docker-destructive-guardrails": {
+      "source": "docker/skills",
+      "sourceType": "github",
+      "skillPath": "skills/docker-destructive-guardrails/SKILL.md",
+      "computedHash": "f6c72f2ba003b2d6dc480f97beb0e166a61b5acfb1f0f6f31af2fa21a66bd9f2"
+    },
+    "docker-project-foundations": {
+      "source": "docker/skills",
+      "sourceType": "github",
+      "skillPath": "skills/docker-project-foundations/SKILL.md",
+      "computedHash": "056df351f09a241f8b219ab6b988aafeebb81a51806f843b502b0a53b06cdd3a"
+    },
+    "docker-sandboxes-env": {
+      "source": "docker/skills",
+      "sourceType": "github",
+      "skillPath": "skills/docker-sandboxes-env/SKILL.md",
+      "computedHash": "3a8f7fcb3b555e7573e6d5f8958a99e388a6676c0cb425bfa44d3d6c78d68536"
+    },
+    "docker-sandboxes-kits": {
+      "source": "docker/skills",
+      "sourceType": "github",
+      "skillPath": "skills/docker-sandboxes-kits/SKILL.md",
+      "computedHash": "d47d99b4f71c0dc39313164f35248d327a2725ab06db97e300e70aa9610b3bdb"
+    },
+    "docker-sandboxes-lifecycle": {
+      "source": "docker/skills",
+      "sourceType": "github",
+      "skillPath": "skills/docker-sandboxes-lifecycle/SKILL.md",
+      "computedHash": "551fb87ea0e47c632a5cb23cb2f8c06c680226cd49699bc19c999fc820f5633f"
+    },
+    "docker-sandboxes-network-credentials": {
+      "source": "docker/skills",
+      "sourceType": "github",
+      "skillPath": "skills/docker-sandboxes-network-credentials/SKILL.md",
+      "computedHash": "a74622051cc1f6fae30d0adfc2dbd33f5a3d83b484929772ee9a8a298ca2586a"
+    }
+  }
+}

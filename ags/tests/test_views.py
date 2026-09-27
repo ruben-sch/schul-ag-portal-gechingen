@@ -221,3 +221,60 @@ class ViewTest(TestCase):
         self.assertEqual(res.status_code, 302)
         self.ag1.refresh_from_db()
         self.assertTrue(self.ag1.leader_email_sent, "Leader email tracking should be set to True after explicit resend")
+
+    def test_select_ags_max_limit_enforced(self):
+        ags = [
+            AG.objects.create(
+                name=f"AG {i}", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4,
+                status=AG.Status.APPROVED, verantwortlicher_email=f"ag{i}@test.de"
+            )
+            for i in range(1, 7)
+        ]
+        # Step 1
+        self.client.post(reverse('register_schueler'), {
+            'name': 'Max 6',
+            'email': 'max6@test.de',
+            'klassenstufe': 4,
+            'notfall_telefon': '12345'
+        })
+
+        # Post 6 AGs (exceeds limit of 5)
+        res = self.client.post(reverse('select_ags'), {'ags': [ag.id for ag in ags]})
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Es dürfen maximal 5 AGs ausgewählt werden.")
+        self.assertEqual(Anmeldung.objects.filter(schueler__name='Max 6').count(), 0)
+
+        # Post exactly 5 AGs (allowed)
+        res_ok = self.client.post(reverse('select_ags'), {'ags': [ag.id for ag in ags[:5]]})
+        self.assertEqual(res_ok.status_code, 302)
+        anmeldungen = list(Anmeldung.objects.filter(schueler__name='Max 6').order_by('prio'))
+        self.assertEqual(len(anmeldungen), 5)
+        self.assertEqual([a.prio for a in anmeldungen], [1, 2, 3, 4, 5])
+
+    def test_manual_intervention_prio_bounds(self):
+        user = User.objects.create(username="admin_bounds@test.de", is_staff=True)
+        self.client.force_login(user)
+
+        student_user = User.objects.create(email="bound_student@test.de", username="bound_student@test.de")
+        profile = SchuelerProfile.objects.create(user=student_user, name="Bound Student", klassenstufe=2)
+        anm = Anmeldung.objects.create(schueler=profile, ag=self.ag1, status=Anmeldung.Status.ACCEPTED, prio=1)
+
+        # Attempting prio > 5 should be rejected
+        res = self.client.post(reverse('manual_intervention'), {
+            'action': 'update_prio',
+            'anmeldung_id': anm.id,
+            'prio': '6'
+        })
+        self.assertEqual(res.status_code, 302)
+        anm.refresh_from_db()
+        self.assertEqual(anm.prio, 1)
+
+        # Prio 5 should succeed
+        res = self.client.post(reverse('manual_intervention'), {
+            'action': 'update_prio',
+            'anmeldung_id': anm.id,
+            'prio': '5'
+        })
+        self.assertEqual(res.status_code, 302)
+        anm.refresh_from_db()
+        self.assertEqual(anm.prio, 5)
