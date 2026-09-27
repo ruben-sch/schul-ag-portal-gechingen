@@ -84,6 +84,8 @@ def select_ags(request):
         
         if not selected_ag_ids:
             messages.error(request, "Bitte wähle mindestens eine gültige AG aus.")
+        elif len(selected_ag_ids) > 5:
+            messages.error(request, "Es dürfen maximal 5 AGs ausgewählt werden.")
         else:
             # Create/Get user and profile
             email = reg_data['email']
@@ -199,9 +201,13 @@ def manual_intervention(request):
                 elif action == 'update_prio':
                     new_prio = request.POST.get('prio')
                     if new_prio and new_prio.isdigit():
-                        anm.prio = int(new_prio)
-                        anm.save()
-                        messages.success(request, f"Priorität für {anm.schueler.name} in {anm.ag.name} auf {new_prio} aktualisiert.")
+                        prio_val = int(new_prio)
+                        if 1 <= prio_val <= 5:
+                            anm.prio = prio_val
+                            anm.save()
+                            messages.success(request, f"Priorität für {anm.schueler.name} in {anm.ag.name} auf {new_prio} aktualisiert.")
+                        else:
+                            messages.error(request, "Priorität muss zwischen 1 und 5 liegen.")
         except Anmeldung.DoesNotExist:
             logger.warning(f"Anmeldung mit ID {anm_id} nicht gefunden in manual_intervention.")
             messages.error(request, "Ausgewählte Anmeldung konnte nicht gefunden werden.")

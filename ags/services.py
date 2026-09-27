@@ -37,7 +37,7 @@ def update_student_registrations(student_profile, ag_ids):
     available_ags = get_available_ags_for_student(student_profile.klassenstufe)
     available_ids = [str(ag.id) for ag in available_ags]
     
-    valid_selections = [ag_id for ag_id in ag_ids if str(ag_id) in available_ids]
+    valid_selections = [ag_id for ag_id in ag_ids if str(ag_id) in available_ids][:5]
     
     with transaction.atomic():
         Anmeldung.objects.filter(schueler=student_profile).delete()
