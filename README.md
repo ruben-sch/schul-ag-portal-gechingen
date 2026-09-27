@@ -48,10 +48,10 @@ Das System basiert auf **Django** und wird über **Docker** betrieben.
 | `make logs` | Zeigt die Server-Logs in Echtzeit |
 
 ### Logins & Links
-- **Admin-Bereich:** `http://localhost:8000/admin/` (Login: `admin` / `admin123`)
-- **Statistik-Dashboard:** `http://localhost:8000/stats/` (Nur für Admins)
-- **AG einreichen:** `http://localhost:8000/propose/`
-- **Schüler-Anmeldung:** `http://localhost:8000/register/`
+- **Admin-Bereich:** `http://web.localhost/admin/` (Login: `admin` / `admin123`)
+- **Statistik-Dashboard:** `http://web.localhost/stats/` (Nur für Admins)
+- **AG einreichen:** `http://web.localhost/propose/`
+- **Schüler-Anmeldung:** `http://web.localhost/register/`
 
 ---
 
