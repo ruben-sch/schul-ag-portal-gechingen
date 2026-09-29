@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.7.0...v0.8.0) (2026-09-29)
+
+
+### Features
+
+* trigger for release ([3691140](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/3691140afa9c2274450a4c8e59403db17e79b311))
+
 ## [0.7.0](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.6.0...v0.7.0) (2026-09-27)
 
 
