@@ -15,6 +15,11 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   traefik:
     image: traefik:v2.11
@@ -36,6 +41,11 @@ services:
       - "traefik.http.routers.dashboard.middlewares=auth"
       - "traefik.http.middlewares.auth.basicauth.users=ruben:$$apr1$$ZWHMvmjo$$5SlQYVCq6k/IW/DedzhvD1"
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   web:
     image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:latest
@@ -61,6 +71,11 @@ services:
       db:
         condition: service_healthy
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   db-staging:
     image: postgres:15
@@ -76,6 +91,11 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   web-staging:
     image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:staging
@@ -102,6 +122,11 @@ services:
       db-staging:
         condition: service_healthy
     restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data_prod:
