@@ -131,3 +131,4 @@ Das Projekt verfügt über vollautomatisierte Workflows (`.github/workflows/`):
     - **Produktions Umgebung:** Ein Deployment für Produktion wird **ausschließlich** durch die Erstellung eines neuen GitHub Releases (Tags) ausgelöst.
 3.  **CodeQL**: Erweitere Sicherheitsanalyse durch GitHub.
 4.  **Dependabot**: Prüft wöchentlich auf veraltete Abhängigkeiten.
+
