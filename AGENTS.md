@@ -1,10 +1,10 @@
 # AGENTS.md - AI Development Guide
 
 ## Project Overview
-The AG-Verwaltungsportal Schlehengäuschule Gechingen is a web platform for managing, registering, and automatically allocating school extracurricular activities (AGs) using an automated fair lottery algorithm. It provides dedicated interfaces for parents, activity leaders, and school administrators, authenticated via passwordless magic links. The core stack comprises Python 3.11+, Django 4.2+, PostgreSQL 15, Gunicorn, WhiteNoise, and Traefik, containerized with Docker Compose.
+The AG-Verwaltungsportal Schlehengäuschule Gechingen is a web platform for managing, registering, and automatically allocating school extracurricular activities (AGs) using an automated fair lottery algorithm. It provides dedicated interfaces for parents, activity leaders, and school administrators, authenticated via passwordless magic links. The core stack comprises Python 3.14 (Django 6 needs 3.12+), Django 6.1+, PostgreSQL 15, Gunicorn, WhiteNoise, and Traefik, containerized with Docker Compose.
 
 ## Critical Setup & Execution Commands
-- **Run commands in the dev container**, not the local `.venv` (it is Python 3.9; CI uses 3.11, the image 3.14): `docker compose exec web python manage.py <cmd>`. Start the stack with `make up` (web, postgres, traefik, mailpit) if it isn't running.
+- **Run commands in the dev container**, not the local `.venv` (it is Python 3.9 and cannot install Django 6; CI and the image use 3.14): `docker compose exec web python manage.py <cmd>`. Start the stack with `make up` (web, postgres, traefik, mailpit) if it isn't running.
   - The container bind-mounts the repo and runs `runserver`, so code edits live-reload. Re-run `make up` only after changing `requirements.txt` or the `Dockerfile`.
 - **Database Migrations**:
   - Make migrations: `docker compose exec web python manage.py makemigrations`
@@ -23,7 +23,7 @@ The AG-Verwaltungsportal Schlehengäuschule Gechingen is a web platform for mana
   - Semester rollover: `make next-semester` (`python manage.py next_semester`)
 
 ## Django & Python Style Rules
-- **Framework Context**: Codebase is implemented in Django 4.2+ (MVT architecture with `ags/` app and `config/` project core); adhere to Django/Python architectural standards.
+- **Framework Context**: Codebase is implemented in Django 6.1+ (MVT architecture with `ags/` app and `config/` project core); adhere to Django/Python architectural standards.
 - **Route & View Design**: Keep request handlers modular in `ags/views.py` and register routes explicitly in `ags/urls.py`. Type-hint new or touched view signatures and response helpers (`django.http.HttpRequest`, `django.http.HttpResponse`).
 - **Separation of Concerns**: Do not place business logic in views. Keep the lottery in `ags/utils.py`, other business logic in `ags/services.py`, email notifications in `ags/emails.py`, and forms in `ags/forms.py`.
 - **Model Integrity**: Define business validation in model `clean()` methods (e.g., student grade constraints) and invoke `full_clean()` in `save()` (currently only `Anmeldung` does; follow that pattern for new validation).
