@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(make reset-hard:*)",
+      "Bash(make reset-soft:*)",
+      "Bash(make restore-db:*)",
+      "Bash(make next-semester:*)",
+      "Bash(make download-db:*)",
+      "Bash(docker compose down -v:*)",
+      "Bash(docker compose run --rm web python manage.py next_semester:*)",
+      "Bash(docker compose exec web python manage.py next_semester:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.agents/hooks/flake8-edited.sh",
+            "timeout": 30,
+            "statusMessage": "flake8 (CI-gating)"
+          }
+        ]
+      }
+    ]
+  }
+}
