@@ -85,22 +85,45 @@ jobs:
           source: "docker-compose.prod.yml"
           target: "~/schul-ag-portal/"
 
-      - name: Copy traefik.prod.toml to server
+      - name: Copy Traefik config to server
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
-          source: "services/traefik/traefik.prod.toml"
-          target: "~/schul-ag-portal/"
+          source: "services/traefik/compose.yml,services/traefik/traefik.prod.toml"
+          target: "~/traefik/"
+          strip_components: 2
 
       - name: Deploy to Hetzner VPS
         uses: appleboy/ssh-action@master
+        env:
+          TRAEFIK_DASHBOARD_USERS: ${{ secrets.TRAEFIK_DASHBOARD_USERS }}
         with:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
+          envs: TRAEFIK_DASHBOARD_USERS
           script: |
+            # Traefik-Zugangsdaten vorbereiten, bevor irgendetwas umgestellt wird
+            if [ -n "$TRAEFIK_DASHBOARD_USERS" ]; then
+              printf '%s\n' "$TRAEFIK_DASHBOARD_USERS" > ~/traefik/dashboard-users
+              chmod 600 ~/traefik/dashboard-users
+            fi
+            if [ ! -s ~/traefik/dashboard-users ]; then
+              echo "GitHub-Secret TRAEFIK_DASHBOARD_USERS fehlt (htpasswd -nbB <user> <passwort>)" >&2
+              exit 1
+            fi
+
+            # Gemeinsames Netz fuer Traefik und alle Apps
+            docker network inspect proxy >/dev/null 2>&1 || docker network create proxy
+
+            # Bestehende Let's-Encrypt-Zertifikate einmalig uebernehmen
+            mkdir -p ~/traefik/certificates
+            if [ ! -f ~/traefik/certificates/acme.json ] && [ -f ~/schul-ag-portal/traefik-public-certificates/acme.json ]; then
+              cp -p ~/schul-ag-portal/traefik-public-certificates/acme.json ~/traefik/certificates/acme.json
+            fi
+
             cd ~/schul-ag-portal/
             
             # GH_TOKEN needed if pulling from private repo on GHCR
@@ -122,4 +145,10 @@ jobs:
             grep -q "^DEFAULT_FROM_EMAIL=" .env || echo "DEFAULT_FROM_EMAIL=${{ secrets.DEFAULT_FROM_EMAIL }}" >> .env
             
             docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
+            # --remove-orphans entfernt beim ersten Lauf den alten Traefik aus diesem Projekt
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+            # Traefik als eigenes Projekt; startet nur neu, wenn sich etwas geaendert hat
+            cd ~/traefik/
+            docker compose pull
+            docker compose up -d

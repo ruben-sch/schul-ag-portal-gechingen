@@ -108,6 +108,7 @@ Damit das Deployment und der E-Mail-Versand funktionieren, müssen im GitHub Rep
 | `SMTP_USER` | Der Wert `resend` |
 | `SMTP_PASSWORD` | Dein Resend API-Key (beginnt mit `re_...`) |
 | `ACME_EMAIL` | E-Mail für Let's Encrypt Benachrichtigungen |
+| `TRAEFIK_DASHBOARD_USERS` | BasicAuth für Traefik-Dashboard und Staging, erzeugt mit `htpasswd -nbB <user> <passwort>` |
 
 ### Ersten Admin-Account erstellen
 Da die Datenbank auf dem Server leer startet, musst du einmalig manuell einen Administrator anlegen. Führe dazu diesen Befehl auf deinem Hetzner-Server aus:
@@ -129,6 +130,7 @@ Das Projekt verfügt über vollautomatisierte Workflows (`.github/workflows/`):
 2.  **Deployment (`deploy-hetzner.yml`)**: Deployed die App automatisch auf den Hetzner VPS:
     - **Staging Umgebung:** Ein Push auf `main` deployed automatisch eine Staging-Instanz (getrennte Container, eigene Sub-Subdomain `staging`). Diese ist durch **Traefik Basic Auth** geschützt (gleiche Zugangsdaten wie für das Traefik-Dashboard).
     - **Produktions Umgebung:** Ein Deployment für Produktion wird **ausschließlich** durch die Erstellung eines neuen GitHub Releases (Tags) ausgelöst.
+    - **Traefik:** Läuft als eigenes Compose-Projekt in `~/traefik/` (Konfiguration in `services/traefik/`) und wird bei jedem Deploy mit ausgerollt. Weitere Apps auf demselben Server hängen sich an das Docker-Netz `proxy`.
 3.  **CodeQL**: Erweitere Sicherheitsanalyse durch GitHub.
 4.  **Dependabot**: Prüft wöchentlich auf veraltete Abhängigkeiten.
 

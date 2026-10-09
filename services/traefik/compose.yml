@@ -1,0 +1,40 @@
+# Traefik als eigenständiges Compose-Projekt.
+# Wird nach ~/traefik/ auf den Server kopiert und vom Deploy-Workflow gestartet.
+# Alle Apps auf dem Server hängen sich an das externe Netz "proxy".
+name: traefik
+
+services:
+  traefik:
+    image: traefik:v2.11
+    environment:
+      - DOCKER_API_VERSION=1.44
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "./certificates:/certificates"
+      - "./traefik.prod.toml:/etc/traefik/traefik.toml:ro"
+      - "./dashboard-users:/etc/traefik/dashboard-users:ro"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`dashboard-schul-ag.schwarzpost.de`)"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      # Zugangsdaten kommen aus dem GitHub-Secret TRAEFIK_DASHBOARD_USERS, nicht aus dem Repo.
+      - "traefik.http.middlewares.auth.basicauth.usersfile=/etc/traefik/dashboard-users"
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  proxy:
+    name: proxy
+    external: true
