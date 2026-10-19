@@ -106,6 +106,23 @@
 </div>
 {% elif tab == 'ags' %}
 
+{% if pending_ags %}
+<div class="glass-card p-4 p-md-5 mb-5">
+    <h2 class="h3 text-light mb-4 pb-3 border-bottom border-secondary border-opacity-25">Eingereicht, noch nicht genehmigt</h2>
+    <ul class="list-unstyled mb-0">
+        {% for ag in pending_ags %}
+        <li class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 border-bottom border-secondary border-opacity-10">
+            <div>
+                <strong class="text-light">{{ ag.name }}</strong>
+                <span class="small text-secondary ms-2">{{ ag.verantwortlicher_name }} · {{ ag.get_termine_display }}</span>
+            </div>
+            <a href="{% url 'edit_ag' ag.pk %}" class="btn btn-sm btn-outline-light"><i class="bi bi-pencil"></i> Bearbeiten</a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
 <div class="glass-card p-4 p-md-5 mb-5">
     <h2 class="h3 text-light mb-4 pb-3 border-bottom border-secondary border-opacity-25">Auslastung & Teilnehmerlisten
     </h2>
@@ -123,7 +140,9 @@
                 <tr class="border-bottom border-secondary border-opacity-10 align-top">
                     <td class="py-4 pe-4">
                         <div class="d-flex justify-content-between align-items-start mb-3">
-                            <strong class="fs-5 text-light d-block">{{ ag.name }}</strong>
+                            <strong class="fs-5 text-light d-block">{{ ag.name }}
+                                <a href="{% url 'edit_ag' ag.pk %}" class="btn btn-sm btn-outline-light py-0 px-2 ms-2 align-text-bottom" title="AG bearbeiten"><i class="bi bi-pencil"></i></a>
+                            </strong>
                             <div class="d-flex flex-column align-items-end gap-1">
                             <form method="post" action="{% url 'resend_leader_email' %}" class="m-0 d-flex align-items-center gap-2">
                                 {% csrf_token %}

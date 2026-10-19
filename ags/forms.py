@@ -27,6 +27,12 @@ class AGProposalForm(forms.ModelForm):
             'ort': 'Ort / Räumlichkeit',
         }
 
+class AGEditForm(AGProposalForm):
+    """Bearbeiten einer AG im Admin-Bereich: wie der Vorschlag, zusätzlich mit Status."""
+    class Meta(AGProposalForm.Meta):
+        fields = AGProposalForm.Meta.fields + ['status']
+
+
 class SchuelerFirstStepForm(forms.Form):
     name = forms.CharField(label="Vollständiger Name", max_length=200)
     email = forms.EmailField(label="E-Mail")

@@ -126,7 +126,8 @@ def get_portal_stats():
         'total_accepted': total_accepted,
         'min_ags': profile_stats['min_ags'] or 0,
         'max_ags': profile_stats['max_ags'] or 0,
-        'ag_stats': ag_stats
+        'ag_stats': ag_stats,
+        'pending_ags': AG.objects.exclude(status=AG.Status.APPROVED).order_by('name'),
     }
 
 def get_students_with_stats(search_query=None, min_ag_filter=None, sort_by='name'):
@@ -225,3 +226,12 @@ def start_new_semester():
     with transaction.atomic():
         AppConfig.objects.select_for_update().get(pk=1)
         call_command('next_semester', stdout=io.StringIO())
+
+
+def ensure_leader_user(ag):
+    """Legt für die AG-Leitung ein Benutzerkonto an, damit sie sich per Magic Link anmelden kann."""
+    user, _ = User.objects.get_or_create(
+        username=ag.verantwortlicher_email,
+        defaults={'email': ag.verantwortlicher_email, 'first_name': ag.verantwortlicher_name}
+    )
+    return user

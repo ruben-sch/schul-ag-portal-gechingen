@@ -5,7 +5,8 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.core.mail import EmailMultiAlternatives
 from django.urls import reverse, reverse_lazy
-from django.views.generic import TemplateView, CreateView, FormView
+from django.views.generic import TemplateView, CreateView, FormView, UpdateView
+from django.utils.decorators import method_decorator
 from django.conf import settings
 from datetime import datetime
 from django.http import HttpRequest, HttpResponse
@@ -14,7 +15,7 @@ import csv
 from django.db.models import Count, Sum, Min, Max, Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from sesame.utils import get_query_string
-from .forms import AGProposalForm, SchuelerFirstStepForm, LoginForm
+from .forms import AGProposalForm, AGEditForm, SchuelerFirstStepForm, LoginForm
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig
 from .utils import run_lottery
 from .emails import BCC_ADRESSE
@@ -50,15 +51,31 @@ class ProposeAGView(CreateView):
 
     def form_valid(self, form):
         ag = form.save()
-        User.objects.get_or_create(
-            username=ag.verantwortlicher_email,
-            defaults={
-                'email': ag.verantwortlicher_email,
-                'first_name': ag.verantwortlicher_name
-            }
-        )
+        services.ensure_leader_user(ag)
         messages.success(self.request, "Vielen Dank! Die AG wurde eingereicht und wird nun geprüft.")
         return super().form_valid(form)
+
+
+@method_decorator(user_passes_test(lambda u: u.is_staff), name='dispatch')
+class AGEditView(UpdateView):
+    model = AG
+    form_class = AGEditForm
+    template_name = 'ags/propose_ag.html'
+    success_url = reverse_lazy('stats_dashboard')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['edit_mode'] = True
+        return context
+
+    def get_success_url(self) -> str:
+        return f"{self.success_url}?tab=ags"
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        services.ensure_leader_user(self.object)
+        messages.success(self.request, f"AG \"{self.object.name}\" wurde gespeichert.")
+        return response
 
 class RegisterSchuelerStep1View(FormView):
     form_class = SchuelerFirstStepForm

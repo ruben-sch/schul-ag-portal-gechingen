@@ -1,14 +1,19 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 
-{% block title %}AG Vorschlagen - AG-Portal{% endblock %}
+{% block title %}{% if edit_mode %}AG bearbeiten{% else %}AG Vorschlagen{% endif %} - AG-Portal{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-12 col-lg-10">
         <div class="glass-card p-4 p-md-5">
+            {% if edit_mode %}
+            <h1 class="text-light mb-3">AG bearbeiten</h1>
+            <p class="text-secondary mb-4">Änderungen gelten sofort, auch für bereits bestehende Anmeldungen.</p>
+            {% else %}
             <h1 class="text-light mb-3">Neue AG vorschlagen</h1>
             <p class="text-secondary mb-4">Fülle das Formular aus, um eine neue AG einzureichen.</p>
+            {% endif %}
 
             <form method="post">
                 {% csrf_token %}
@@ -79,10 +84,21 @@
                     <div class="col-12 text-secondary">
                         {{ form.verantwortlicher_telefon|as_crispy_field }}
                     </div>
+
+                    {% if edit_mode %}
+                    <div class="col-12 col-md-6 text-secondary">
+                        {{ form.status|as_crispy_field }}
+                    </div>
+                    {% endif %}
                 </div>
 
-                <div class="d-flex justify-content-end mt-5">
+                <div class="d-flex justify-content-end gap-2 mt-5">
+                    {% if edit_mode %}
+                    <a href="{% url 'stats_dashboard' %}?tab=ags" class="btn btn-outline-light btn-lg">Abbrechen</a>
+                    <button type="submit" class="btn btn-brand-primary btn-lg px-5">Speichern</button>
+                    {% else %}
                     <button type="submit" class="btn btn-brand-primary btn-lg px-5">AG einreichen</button>
+                    {% endif %}
                 </div>
             </form>
         </div>
@@ -112,19 +128,24 @@
         row.className = 'termin-row row g-2 mb-2 align-items-center';
         row.innerHTML = `
             <div class="col-12 col-sm-4">
-                <input type="date" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary datum" value="${data.datum || ''}">
+                <input type="date" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary datum">
             </div>
             <div class="col-5 col-sm-3">
-                <input type="time" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary start" value="${data.start || ''}">
+                <input type="time" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary start">
             </div>
             <div class="col-auto text-secondary text-center">bis</div>
             <div class="col-5 col-sm-3">
-                <input type="time" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary ende" value="${data.ende || ''}">
+                <input type="time" class="form-control bg-dark text-light border-secondary focus-ring focus-ring-primary ende">
             </div>
             <div class="col-auto text-end">
                 <button type="button" class="btn text-danger p-0 fs-4 btn-remove" aria-label="Entfernen">&times;</button>
             </div>
         `;
+
+        // Werte per DOM setzen statt per innerHTML, damit gespeicherte Termine kein HTML einschleusen können.
+        row.querySelector('.datum').value = data.datum || '';
+        row.querySelector('.start').value = data.start || '';
+        row.querySelector('.ende').value = data.ende || '';
 
         row.querySelectorAll('input').forEach(input => {
             input.addEventListener('input', updateHiddenInput);
