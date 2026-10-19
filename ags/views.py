@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from smtplib import SMTPException
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
@@ -63,7 +64,7 @@ class AGEditView(UpdateView):
     template_name = 'ags/propose_ag.html'
     success_url = reverse_lazy('stats_dashboard')
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context['edit_mode'] = True
         return context
@@ -71,7 +72,7 @@ class AGEditView(UpdateView):
     def get_success_url(self) -> str:
         return f"{self.success_url}?tab=ags"
 
-    def form_valid(self, form):
+    def form_valid(self, form: AGEditForm) -> HttpResponse:
         response = super().form_valid(form)
         services.ensure_leader_user(self.object)
         messages.success(self.request, f"AG \"{self.object.name}\" wurde gespeichert.")
