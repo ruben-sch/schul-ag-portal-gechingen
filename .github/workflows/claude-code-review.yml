@@ -48,6 +48,9 @@ jobs:
             /code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}
             Note: the root CLAUDE.md only contains "@AGENTS.md". Treat AGENTS.md as the root CLAUDE.md
             for the CLAUDE.md compliance check and pass its path to the review agents.
+            Review every push: skip the "Claude has already commented" check in step 1 and review the
+            current state of the PR. Earlier Claude comments do not stop the review; do not repeat
+            inline comments that already exist on unchanged lines.
           # The code-review command and its subagents read the PR and post the summary via gh;
           # without these, the eligibility check cannot read the PR and the review stops silently.
           claude_args: >-
