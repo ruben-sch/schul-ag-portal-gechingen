@@ -116,7 +116,10 @@
                 <strong class="text-light">{{ ag.name }}</strong>
                 <span class="small text-secondary ms-2">{{ ag.verantwortlicher_name }} · {{ ag.get_termine_display }}</span>
             </div>
-            <a href="{% url 'edit_ag' ag.pk %}" class="btn btn-sm btn-outline-light"><i class="bi bi-pencil"></i> Bearbeiten</a>
+            <div class="d-flex gap-2">
+                <a href="{% url 'edit_ag' ag.pk %}" class="btn btn-sm btn-outline-light"><i class="bi bi-pencil"></i> Bearbeiten</a>
+                {% include 'ags/partials/duplicate_ag_button.html' %}
+            </div>
         </li>
         {% endfor %}
     </ul>
@@ -142,6 +145,7 @@
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <strong class="fs-5 text-light d-block">{{ ag.name }}
                                 <a href="{% url 'edit_ag' ag.pk %}" class="btn btn-sm btn-outline-light py-0 px-2 ms-2 align-text-bottom" title="AG bearbeiten"><i class="bi bi-pencil"></i></a>
+                                {% include 'ags/partials/duplicate_ag_button.html' %}
                             </strong>
                             <div class="d-flex flex-column align-items-end gap-1">
                             <form method="post" action="{% url 'resend_leader_email' %}" class="m-0 d-flex align-items-center gap-2">

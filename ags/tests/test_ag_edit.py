@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
+from ags import services
 from ags.models import AG, Anmeldung, SchuelerProfile
 
 
@@ -121,3 +122,45 @@ class AGEditTest(TestCase):
         self.client.logout()
         res = self.client.post(reverse('login'), {'email': 'LEITUNG@test.de'}, follow=True)
         self.assertContains(res, 'Anmelde-Link wurde')
+
+
+class AGDuplicateTest(TestCase):
+    def setUp(self):
+        # Jedes Inhaltsfeld bekommt einen Nicht-Standardwert, damit ein vergessenes Feld auffällt.
+        self.ag = AG.objects.create(name="Kunst AG", beschreibung="Malen", kosten=5, kapazitaet=10, klassenstufe_min=2,
+                                    klassenstufe_max=3, ort='Werkraum', mitzubringen='Malkittel', hinweise='Bitte pünktlich',
+                                    status='APPROVED', leader_email_sent=True,
+                                    termine=[{'datum': '2026-11-03', 'start': '14:00', 'ende': '15:00'}],
+                                    verantwortlicher_email='kunst@test.de', verantwortlicher_name='Herr Pinsel',
+                                    verantwortlicher_telefon='07056 1234')
+        u = User.objects.create(username="eltern@test.de", email="eltern@test.de")
+        p = SchuelerProfile.objects.create(user=u, name="Kind", klassenstufe=2)
+        Anmeldung.objects.create(schueler=p, ag=self.ag, prio=1)
+        self.url = reverse('duplicate_ag', args=[self.ag.pk])
+
+    def test_duplicate_copies_content_without_termine_and_registrations(self):
+        self.client.force_login(User.objects.create(username="staff@test.de", is_staff=True))
+        res = self.client.post(self.url)
+        kopie = AG.objects.exclude(pk=self.ag.pk).get()
+        self.assertRedirects(res, reverse('edit_ag', args=[kopie.pk]), fetch_redirect_response=False)
+        for feld in services.AG_INHALT_FELDER:
+            self.assertEqual(getattr(kopie, feld), getattr(self.ag, feld), feld)
+            self.assertNotEqual(getattr(self.ag, feld), AG._meta.get_field(feld).get_default(), feld)
+        self.assertEqual(kopie.termine, [])
+        self.assertEqual(kopie.status, AG.Status.SUBMITTED)
+        self.assertFalse(kopie.leader_email_sent)
+        self.assertEqual(kopie.anmeldungen.count(), 0)
+
+    def test_duplicate_requires_post_and_staff(self):
+        self.client.force_login(User.objects.create(username="staff@test.de", is_staff=True))
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        self.client.force_login(User.objects.create(username="eltern2@test.de"))
+        res = self.client.post(self.url)
+        self.assertEqual(res.status_code, 302)
+        self.assertIn(reverse('login'), res.url)
+        self.assertEqual(AG.objects.count(), 1)
+
+    def test_duplicate_rejects_anonymous(self):
+        res = self.client.post(self.url)
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(AG.objects.count(), 1)

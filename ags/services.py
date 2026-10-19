@@ -263,3 +263,19 @@ def ag_bearbeiten_warnungen(ag):
             f"{ag.klassenstufe_min}–{ag.klassenstufe_max}."
         )
     return warnungen
+
+
+# Inhaltliche Felder einer AG; Status, Versand-Flags und Anmeldungen gehören nicht dazu.
+AG_INHALT_FELDER = (
+    'name', 'beschreibung', 'kosten', 'klassenstufe_min', 'klassenstufe_max', 'kapazitaet', 'ort',
+    'mitzubringen', 'hinweise', 'verantwortlicher_name', 'verantwortlicher_email', 'verantwortlicher_telefon',
+)
+
+
+def duplicate_ag(ag):
+    """Kopiert eine AG ohne Termine und Anmeldungen, damit sie zu einem anderen Termin erneut angeboten werden kann."""
+    return AG.objects.create(
+        **{feld: getattr(ag, feld) for feld in AG_INHALT_FELDER},
+        termine=[],
+        status=AG.Status.SUBMITTED,
+    )

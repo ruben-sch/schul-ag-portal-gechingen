@@ -1,0 +1,5 @@
+<form method="post" action="{% url 'duplicate_ag' ag.pk %}" class="d-inline m-0">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-sm btn-outline-light py-0 px-2 align-text-bottom" title="AG duplizieren (anderer Termin)"
+        onclick="return confirm('AG &quot;{{ ag.name|escapejs }}&quot; mit neuen Terminen duplizieren?')"><i class="bi bi-copy"></i></button>
+</form>
