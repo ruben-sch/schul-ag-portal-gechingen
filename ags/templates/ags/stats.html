@@ -10,7 +10,10 @@
 
 <ul class="nav nav-tabs border-secondary border-opacity-50 mb-4">
   <li class="nav-item">
-    <a class="nav-link {% if tab == 'general' %}active bg-brand-primary fw-bold border-brand-primary{% else %}text-light bg-dark border-secondary border-opacity-25{% endif %}" href="?tab=general">Allgemeine Statistiken & Funktionen</a>
+    <a class="nav-link {% if tab == 'workflow' %}active bg-brand-primary fw-bold border-brand-primary{% else %}text-light bg-dark border-secondary border-opacity-25{% endif %}" href="?tab=workflow">Workflow</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link ms-2 {% if tab == 'general' %}active bg-brand-primary fw-bold border-brand-primary{% else %}text-light bg-dark border-secondary border-opacity-25{% endif %}" href="?tab=general">Allgemeine Statistiken & Funktionen</a>
   </li>
   <li class="nav-item">
     <a class="nav-link ms-2 {% if tab == 'ags' %}active bg-brand-primary fw-bold border-brand-primary{% else %}text-light bg-dark border-secondary border-opacity-25{% endif %}" href="?tab=ags">AG Statistiken</a>
@@ -20,7 +23,9 @@
   </li>
 </ul>
 
-{% if tab == 'general' %}
+{% if tab == 'workflow' %}
+{% include 'ags/partials/workflow.html' %}
+{% elif tab == 'general' %}
 <div class="glass-card p-4 mb-5">
     <h2 class="h5 text-secondary mb-4 text-uppercase tracking-wide">Verwaltungs-Funktionen</h2>
     <div class="d-flex flex-wrap gap-2 align-items-center">
@@ -40,6 +45,7 @@
         
         <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0 d-inline">
             {% csrf_token %}
+            <input type="hidden" name="tab" value="general">
             <input type="hidden" name="target" value="leader_preview">
             <button type="submit" class="btn btn-outline-light d-flex align-items-center gap-2" onclick="return confirm('Möchtest du allen AG-Leitern die vorläufige Teilnehmerliste zur Prüfung senden? (Es werden nur noch nicht versendete Mails verschickt)')">
                 <span>📋</span> Vorläufige Listen an AG-Leiter
@@ -48,6 +54,7 @@
 
         <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0 d-inline">
             {% csrf_token %}
+            <input type="hidden" name="tab" value="general">
             <input type="hidden" name="target" value="leaders">
             <button type="submit" class="btn btn-outline-light d-flex align-items-center gap-2" onclick="return confirm('Möchtest du allen AG-Leitern ihre Teilnehmerlisten senden? (Es werden nur noch nicht versendete Mails verschickt)')">
                 <span>📧</span> Fehlende AG-Leiter Mails
@@ -56,15 +63,18 @@
 
         <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0 d-inline">
             {% csrf_token %}
+            <input type="hidden" name="tab" value="general">
             <input type="hidden" name="target" value="students">
             <button type="submit" class="btn btn-outline-light d-flex align-items-center gap-2" onclick="return confirm('Möchtest du allen Schülern ihre Zuteilungen senden? (Es werden nur noch nicht versendete Mails verschickt)')">
                 <span>📧</span> Fehlende Schüler Mails
             </button>
         </form>
 
-        <div class="ms-md-auto mt-2 mt-md-0">
-            <a href="/run-lottery-internal/" class="btn btn-brand-primary">Losverfahren jetzt starten</a>
-        </div>
+        <form method="post" action="{% url 'run_lottery_internal' %}" class="ms-md-auto mt-2 mt-md-0">
+            {% csrf_token %}
+            <input type="hidden" name="tab" value="general">
+            <button type="submit" class="btn btn-brand-primary" onclick="return confirm('Losverfahren jetzt starten? Bisherige Zuteilungen werden überschrieben.')">Losverfahren jetzt starten</button>
+        </form>
     </div>
 </div>
 
@@ -117,6 +127,7 @@
                             <div class="d-flex flex-column align-items-end gap-1">
                             <form method="post" action="{% url 'resend_leader_email' %}" class="m-0 d-flex align-items-center gap-2">
                                 {% csrf_token %}
+                                <input type="hidden" name="tab" value="ags">
                                 <input type="hidden" name="ag_id" value="{{ ag.id }}">
                                 <input type="hidden" name="kind" value="preview">
                                 <span class="small text-secondary">Vorläufig:</span>
@@ -130,6 +141,7 @@
                             <form method="post" action="{% url 'resend_leader_email' %}" class="m-0 d-flex align-items-center gap-2">
                                 <span class="small text-secondary">Final:</span>
                                 {% csrf_token %}
+                                <input type="hidden" name="tab" value="ags">
                                 <input type="hidden" name="ag_id" value="{{ ag.id }}">
                                 {% if ag.leader_email_sent %}
                                 <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50" title="Mail an Leiter gesendet"><i class="bi bi-check-circle-fill"></i> Gesendet</span>

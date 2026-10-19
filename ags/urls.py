@@ -16,6 +16,8 @@ urlpatterns = [
     path('resend-leader-email/', views.resend_leader_email, name='resend_leader_email'),
     path('send-bulk-emails/', views.send_bulk_emails_view, name='send_bulk_emails'),
     path('run-lottery-internal/', views.run_lottery_view, name='run_lottery_internal'),
+    path('workflow/toggle/', views.workflow_toggle, name='workflow_toggle'),
+    path('workflow/next-semester/', views.workflow_next_semester, name='workflow_next_semester'),
     path('test-email/', views.test_email, name='test_email'),
     path('impressum/', views.impressum, name='impressum'),
 ]
