@@ -279,3 +279,15 @@ class ViewTest(TestCase):
         self.assertEqual(res.status_code, 302)
         anm.refresh_from_db()
         self.assertEqual(anm.prio, 5)
+
+
+class AdminAGOverviewTest(TestCase):
+    def test_ag_tab_shows_leader_and_dates(self):
+        from ags.models import AG
+        AG.objects.create(name="Chor AG", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4, status='APPROVED', ort='Musiksaal',
+                          termine=[{'datum': '2026-11-03', 'start': '14:00', 'ende': '15:00'}],
+                          verantwortlicher_name='Frau Sing', verantwortlicher_email='sing@test.de', verantwortlicher_telefon='0123')
+        self.client.force_login(User.objects.create(username="staff@test.de", is_staff=True))
+        res = self.client.get(reverse('stats_dashboard') + '?tab=ags')
+        for text in ['Frau Sing', 'sing@test.de', '0123', '03.11.2026 (14:00-15:00)', 'Musiksaal']:
+            self.assertContains(res, text)
