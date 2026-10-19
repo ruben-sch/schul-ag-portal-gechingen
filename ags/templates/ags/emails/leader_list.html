@@ -2,7 +2,26 @@
 
 {% block content %}
 <h1>Hallo {{ ag.verantwortlicher_name }},</h1>
+{% if vorlaeufig %}
+<p>die Auslosung ist gelaufen. Hier ist die <strong>vorläufige</strong> Teilnehmerliste für deine AG <strong>{{ ag.name }}</strong>.</p>
+<p><strong>Bitte prüfe die AG-Daten und die Liste.</strong> Korrekturen (z.B. Termine, Ort, Teilnehmerzahl) schickst du einfach als Antwort auf diese E-Mail. Die endgültige Liste mit Abrechnungsvordruck bekommst du, sobald die Kinder benachrichtigt werden.</p>
+
+<h2 style="font-size: 20px; margin-top: 30px;">AG-Daten</h2>
+<div class="ag-item">
+    <div class="text-muted">
+        <strong>Termin(e):</strong> {{ ag.get_termine_display }}<br>
+        <strong>Ort:</strong> {{ ag.ort|default:"-" }}<br>
+        <strong>Klassenstufe:</strong> {{ ag.klassenstufe_min }} bis {{ ag.klassenstufe_max }}<br>
+        <strong>Maximale Teilnehmerzahl:</strong> {{ ag.kapazitaet }}<br>
+        <strong>Kosten:</strong> {{ ag.kosten }} €<br>
+        <strong>Mitzubringen:</strong> {{ ag.mitzubringen|default:"-" }}<br>
+        <strong>Hinweise:</strong> {{ ag.hinweise|default:"-" }}<br>
+        <strong>Kontakt:</strong> {{ ag.verantwortlicher_name }}, {{ ag.verantwortlicher_email }}{% if ag.verantwortlicher_telefon %}, {{ ag.verantwortlicher_telefon }}{% endif %}
+    </div>
+</div>
+{% else %}
 <p>Hier ist die aktuelle Liste für deine AG <strong>{{ ag.name }}</strong>:</p>
+{% endif %}
 
 <h2 style="font-size: 20px; margin-top: 30px;">Teilnehmerliste (Zugelassen)</h2>
 <table>
@@ -56,9 +75,11 @@
     </tbody>
 </table>
 
+{% if not vorlaeufig %}
 <p style="margin-top: 30px; font-size: 14px;" class="text-muted">
     <em>Absagen werden direkt an dich gesendet. Bitte kontaktiere eventuelle Nachrücker selbst.</em>
 </p>
+{% endif %}
 <p style="margin-top: 30px; font-size: 14px;" class="text-muted">
     <em>Vielen Dank, dass du eine AG anbietest und durchführst!</em>
 </p>

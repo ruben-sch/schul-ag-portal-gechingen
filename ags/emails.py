@@ -349,6 +349,58 @@ def send_leader_emails(ag_ids, only_unsent=False, connection=None):
     return sent, failed
 
 
+def send_single_leader_preview_email(ag, connection=None):
+    """
+    Sends the preliminary participant list (after the lottery, before notifying students) to the AG leader
+    for review. No PDF attachments; corrections come back by reply.
+    Returns True if sent successfully, False otherwise.
+    """
+    participants = Anmeldung.objects.filter(
+        ag=ag, status=Anmeldung.Status.ACCEPTED
+    ).select_related('schueler__user').order_by('schueler__name')
+    waitlist = Anmeldung.objects.filter(
+        ag=ag, status=Anmeldung.Status.REJECTED
+    ).select_related('schueler__user').order_by('prio', 'erstellt_am')
+
+    context = {'ag': ag, 'participants': participants, 'waitlist': waitlist, 'vorlaeufig': True}
+    html_message = render_to_string('ags/emails/leader_list.html', context)
+    msg = EmailMultiAlternatives(
+        subject=f"Vorläufige Teilnehmerliste zur Prüfung: {ag.name}",
+        body=strip_tags(html_message),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[ag.verantwortlicher_email],
+        bcc=[BCC_ADRESSE],
+        connection=connection,
+    )
+    msg.attach_alternative(html_message, "text/html")
+    try:
+        _senden(msg)
+    except Exception as e:
+        logger.error(f"Failed to send leader preview email for {ag.name} to {ag.verantwortlicher_email}: {e}")
+        return False
+    ag.leader_preview_sent = True
+    ag.save(update_fields=['leader_preview_sent'])
+    return True
+
+
+def send_leader_preview_emails(only_unsent=True):
+    """Sends the preliminary list to the leaders of all approved AGs. Returns sent/failed counts."""
+    results = {'sent': 0, 'failed': 0}
+    ags = AG.objects.filter(status=AG.Status.APPROVED)
+    if only_unsent:
+        ags = ags.filter(leader_preview_sent=False)
+    connection = get_connection()
+    try:
+        for ag in ags:
+            if send_single_leader_preview_email(ag, connection=connection):
+                results['sent'] += 1
+            else:
+                results['failed'] += 1
+    finally:
+        connection.close()
+    return results
+
+
 def send_allocation_emails(only_unsent=False, send_students=True, send_leaders=True):
     """
     Sends grouped emails to students and detailed lists to leaders in one run.

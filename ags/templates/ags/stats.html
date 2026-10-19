@@ -40,6 +40,14 @@
         
         <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0 d-inline">
             {% csrf_token %}
+            <input type="hidden" name="target" value="leader_preview">
+            <button type="submit" class="btn btn-outline-light d-flex align-items-center gap-2" onclick="return confirm('Möchtest du allen AG-Leitern die vorläufige Teilnehmerliste zur Prüfung senden? (Es werden nur noch nicht versendete Mails verschickt)')">
+                <span>📋</span> Vorläufige Listen an AG-Leiter
+            </button>
+        </form>
+
+        <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0 d-inline">
+            {% csrf_token %}
             <input type="hidden" name="target" value="leaders">
             <button type="submit" class="btn btn-outline-light d-flex align-items-center gap-2" onclick="return confirm('Möchtest du allen AG-Leitern ihre Teilnehmerlisten senden? (Es werden nur noch nicht versendete Mails verschickt)')">
                 <span>📧</span> Fehlende AG-Leiter Mails
@@ -106,7 +114,21 @@
                     <td class="py-4 pe-4">
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <strong class="fs-5 text-light d-block">{{ ag.name }}</strong>
+                            <div class="d-flex flex-column align-items-end gap-1">
                             <form method="post" action="{% url 'resend_leader_email' %}" class="m-0 d-flex align-items-center gap-2">
+                                {% csrf_token %}
+                                <input type="hidden" name="ag_id" value="{{ ag.id }}">
+                                <input type="hidden" name="kind" value="preview">
+                                <span class="small text-secondary">Vorläufig:</span>
+                                {% if ag.leader_preview_sent %}
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50" title="Vorläufige Liste an Leiter gesendet"><i class="bi bi-check-circle-fill"></i> Gesendet</span>
+                                {% else %}
+                                <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary" title="Vorläufige Liste noch nicht gesendet"><i class="bi bi-dash-circle"></i> Offen</span>
+                                {% endif %}
+                                <button type="submit" class="btn btn-sm btn-outline-light py-0 px-2" title="Vorläufige Liste (erneut) senden"><i class="bi bi-send"></i></button>
+                            </form>
+                            <form method="post" action="{% url 'resend_leader_email' %}" class="m-0 d-flex align-items-center gap-2">
+                                <span class="small text-secondary">Final:</span>
                                 {% csrf_token %}
                                 <input type="hidden" name="ag_id" value="{{ ag.id }}">
                                 {% if ag.leader_email_sent %}
@@ -116,6 +138,7 @@
                                 {% endif %}
                                 <button type="submit" class="btn btn-sm btn-outline-light py-0 px-2" title="Leiter-Email (erneut) ansenden"><i class="bi bi-send"></i></button>
                             </form>
+                            </div>
                         </div>
                         <div class="small">
                             <div class="text-success fw-bold mb-2">Zugelassen:</div>

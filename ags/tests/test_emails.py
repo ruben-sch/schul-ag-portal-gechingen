@@ -245,3 +245,54 @@ class EmailTaskTest(TestCase):
         self.assertTrue(Anmeldung.objects.filter(schueler=self.profile, ag=self.ag).exists())
         self.profile.refresh_from_db()
         self.assertFalse(self.profile.confirmation_email_sent)
+
+
+class LeaderPreviewEmailTest(TestCase):
+    def setUp(self):
+        self.ag = AG.objects.create(name="Schach AG", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4,
+                                    status='APPROVED', ort='Raum 1', termine=[{'datum': '2026-11-03', 'start': '14:00', 'ende': '15:00'}],
+                                    verantwortlicher_email='leiter@test.de', verantwortlicher_name='Frau Leiterin')
+        AG.objects.create(name="Nicht genehmigt", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4,
+                          verantwortlicher_email='x@test.de', verantwortlicher_name='X')
+        u = User.objects.create(username="kind@test.de", email="kind@test.de")
+        p = SchuelerProfile.objects.create(user=u, name="Kind A", klassenstufe=2)
+        Anmeldung.objects.create(schueler=p, ag=self.ag, prio=1, status='ACCEPTED')
+
+    def test_preview_mail_content_without_attachments(self):
+        from ags.emails import send_leader_preview_emails
+        mail.outbox = []
+        result = send_leader_preview_emails()
+        self.assertEqual(result, {'sent': 1, 'failed': 0})
+        self.assertEqual(len(mail.outbox), 1)
+        msg = mail.outbox[0]
+        self.assertEqual(msg.to, ['leiter@test.de'])
+        self.assertIn('Vorläufige', msg.subject)
+        self.assertEqual(msg.attachments, [])
+        html = msg.alternatives[0][0]
+        self.assertIn('Kind A', html)
+        self.assertIn('03.11.2026', html)
+        self.assertIn('Raum 1', html)
+        self.ag.refresh_from_db()
+        self.assertTrue(self.ag.leader_preview_sent)
+        self.assertFalse(self.ag.leader_email_sent)
+
+    def test_only_unsent_and_reset_by_lottery(self):
+        from ags.emails import send_leader_preview_emails
+        from ags.utils import run_lottery
+        send_leader_preview_emails()
+        mail.outbox = []
+        self.assertEqual(send_leader_preview_emails(), {'sent': 0, 'failed': 0})
+        run_lottery()
+        self.ag.refresh_from_db()
+        self.assertFalse(self.ag.leader_preview_sent)
+
+    def test_bulk_view_enqueues_preview(self):
+        from django.urls import reverse
+        admin = User.objects.create(username="admin@test.de", is_staff=True)
+        self.client.force_login(admin)
+        mail.outbox = []
+        self.client.post(reverse('send_bulk_emails'), {'target': 'leader_preview'})
+        self.assertEqual(len(mail.outbox), 1)
+        self.client.post(reverse('resend_leader_email'), {'ag_id': self.ag.id, 'kind': 'preview'})
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertIn('Vorläufige', mail.outbox[1].subject)

@@ -259,9 +259,14 @@ def resend_leader_email(request: HttpRequest) -> HttpResponse:
         ag_id = request.POST.get('ag_id')
         try:
             ag = AG.objects.get(id=ag_id)
-            from .tasks import send_leader_email_task
-            send_leader_email_task.enqueue(ag.id)
-            messages.success(request, f"E-Mail für AG-Leitung ({ag.verantwortlicher_email}) wird versendet.")
+            if request.POST.get('kind') == 'preview':
+                from .tasks import send_leader_preview_email_task
+                send_leader_preview_email_task.enqueue(ag.id)
+                messages.success(request, f"Vorläufige Liste für AG-Leitung ({ag.verantwortlicher_email}) wird versendet.")
+            else:
+                from .tasks import send_leader_email_task
+                send_leader_email_task.enqueue(ag.id)
+                messages.success(request, f"E-Mail für AG-Leitung ({ag.verantwortlicher_email}) wird versendet.")
         except AG.DoesNotExist:
             messages.error(request, "AG nicht gefunden.")
         except Exception as e:
@@ -386,6 +391,10 @@ def send_bulk_emails_view(request: HttpRequest) -> HttpResponse:
             messages.success(request, VERSAND_GESTARTET)
         elif target == 'leaders':
             send_allocation_emails_task.enqueue(only_unsent=True, send_students=False, send_leaders=True)
+            messages.success(request, VERSAND_GESTARTET)
+        elif target == 'leader_preview':
+            from .tasks import send_leader_preview_emails_task
+            send_leader_preview_emails_task.enqueue(only_unsent=True)
             messages.success(request, VERSAND_GESTARTET)
         else:
             messages.error(request, "Ungültiges Zielfeld für den E-Mail-Versand.")

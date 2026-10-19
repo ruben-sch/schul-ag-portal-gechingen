@@ -7,11 +7,14 @@ from .models import AG, Anmeldung, SchuelerProfile
 def reset_lottery():
     """Sets all registrations back to PENDING."""
     Anmeldung.objects.all().update(status=Anmeldung.Status.PENDING)
+    # Eine vorläufige Liste aus der verworfenen Auslosung ist nicht mehr gültig.
+    AG.objects.update(leader_preview_sent=False)
 
 def run_lottery():
     with transaction.atomic():
         # 1. Reset
         Anmeldung.objects.all().update(status=Anmeldung.Status.REJECTED)
+        AG.objects.update(leader_preview_sent=False)
         
         # 2. Setup
         approved_ags = {ag.id: ag for ag in AG.objects.filter(status=AG.Status.APPROVED)}
