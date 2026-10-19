@@ -10,6 +10,11 @@ on:
     #   - "src/**/*.js"
     #   - "src/**/*.jsx"
 
+# One review per PR at a time; parallel runs both pass the "already commented" check and post duplicates.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   claude-review:
     # Secrets are unavailable to Dependabot and fork PRs; skip drafts to save tokens.
