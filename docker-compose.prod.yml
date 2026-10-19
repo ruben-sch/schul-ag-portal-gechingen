@@ -25,7 +25,7 @@ services:
     image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:latest
     command: >
       sh -c "python manage.py migrate --noinput &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 4 --timeout 60"
     expose:
       - "8000"
     networks:
@@ -47,6 +47,28 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  worker:
+    image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:latest
+    # Arbeitet Hintergrund-Aufgaben (E-Mail-Versand) ab; Migrationen führt der Web-Container aus.
+    command: python manage.py db_worker
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-ag_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-ag_portal}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=False
+      - EMAIL_URL=smtp+tls://${SMTP_USER}:${SMTP_PASSWORD}@${SMTP_HOST}:${SMTP_PORT:-587}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_started
     restart: always
     logging:
       driver: "json-file"
@@ -78,7 +100,7 @@ services:
     image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:staging
     command: >
       sh -c "python manage.py migrate --noinput &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 4 --timeout 60"
     expose:
       - "8000"
     networks:
@@ -101,6 +123,28 @@ services:
     depends_on:
       db-staging:
         condition: service_healthy
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  worker-staging:
+    image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:staging
+    # Arbeitet Hintergrund-Aufgaben (E-Mail-Versand) ab; Migrationen führt der Web-Container aus.
+    command: python manage.py db_worker
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER:-ag_user}:${POSTGRES_PASSWORD}@db-staging:5432/${POSTGRES_DB:-ag_portal}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=False
+      - EMAIL_URL=smtp+tls://${SMTP_USER}:${SMTP_PASSWORD}@${SMTP_HOST}:${SMTP_PORT:-587}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
+    depends_on:
+      db-staging:
+        condition: service_healthy
+      web-staging:
+        condition: service_started
     restart: always
     logging:
       driver: "json-file"

@@ -59,3 +59,71 @@ class EmailTest(TestCase):
         self.assertTrue(any('Abrechnung' in name for name in attachment_names))
         self.assertTrue(any('Teilnehmerliste' in name for name in attachment_names))
         self.assertTrue(any('Warteliste' in name for name in attachment_names))
+
+
+class EmailRetryTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create(username="kind@test.de", email="kind@test.de")
+        self.profile = SchuelerProfile.objects.create(user=self.user, name="Kind", klassenstufe=2)
+
+    def test_transient_error_is_retried(self):
+        from unittest import mock
+        import smtplib
+        from django.core.mail.backends.locmem import EmailBackend
+        from ags.emails import send_registration_confirmation
+
+        original = EmailBackend.send_messages
+        calls = []
+
+        def flaky(backend, messages):
+            calls.append(1)
+            if len(calls) == 1:
+                raise smtplib.SMTPServerDisconnected("Verbindung verloren")
+            return original(backend, messages)
+
+        mail.outbox = []
+        with mock.patch.object(EmailBackend, 'send_messages', flaky):
+            self.assertTrue(send_registration_confirmation(self.profile))
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(mail.outbox), 1)
+        self.profile.refresh_from_db()
+        self.assertTrue(self.profile.confirmation_email_sent)
+
+    def test_permanent_error_is_not_retried(self):
+        from unittest import mock
+        import smtplib
+        from django.core.mail.backends.locmem import EmailBackend
+        from ags.emails import send_registration_confirmation
+
+        error = smtplib.SMTPDataError(550, b"Mailbox unavailable")
+        with mock.patch.object(EmailBackend, 'send_messages', side_effect=error) as send:
+            self.assertFalse(send_registration_confirmation(self.profile))
+        self.assertEqual(send.call_count, 1)
+        self.profile.refresh_from_db()
+        self.assertFalse(self.profile.confirmation_email_sent)
+
+    def test_gives_up_after_max_attempts(self):
+        from unittest import mock
+        from django.core.mail.backends.locmem import EmailBackend
+        from ags.emails import send_registration_confirmation, MAX_VERSUCHE
+
+        with mock.patch.object(EmailBackend, 'send_messages', side_effect=TimeoutError()) as send:
+            self.assertFalse(send_registration_confirmation(self.profile))
+        self.assertEqual(send.call_count, MAX_VERSUCHE)
+
+    def test_bulk_send_uses_single_connection(self):
+        from unittest import mock
+        ag = AG.objects.create(name="AG", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4, status='APPROVED',
+                               verantwortlicher_email='leiter@test.de', verantwortlicher_name='Leiter')
+        for i in range(3):
+            u = User.objects.create(username=f"k{i}@test.de", email=f"k{i}@test.de")
+            p = SchuelerProfile.objects.create(user=u, name=f"K{i}", klassenstufe=2)
+            Anmeldung.objects.create(schueler=p, ag=ag, prio=1, status='ACCEPTED')
+
+        with mock.patch('ags.emails.get_connection', wraps=__import__('django.core.mail').core.mail.get_connection) as gc:
+            mail.outbox = []
+            result = send_allocation_emails()
+        self.assertEqual(gc.call_count, 1)
+        self.assertEqual(result['students_sent'], 3)
+        self.assertEqual(result['leaders_sent'], 1)
+        self.assertEqual(len(mail.outbox), 4)

@@ -1,9 +1,5 @@
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Min, Max, Q
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from django.conf import settings
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig
 
 def get_available_ags_for_student(klassenstufe):
@@ -41,37 +37,17 @@ def update_student_registrations(student_profile, ag_ids):
     
     with transaction.atomic():
         Anmeldung.objects.filter(schueler=student_profile).delete()
-        saved_anmeldungen = []
         for i, ag_id in enumerate(valid_selections):
             ag = AG.objects.get(id=ag_id)
-            anm = Anmeldung.objects.create(schueler=student_profile, ag=ag, prio=i+1)
-            saved_anmeldungen.append(anm)
-        
-    try:
-        context = {
-            'schueler': student_profile,
-            'anmeldungen': saved_anmeldungen,
-        }
-        html_message = render_to_string('ags/emails/registration_confirmation.html', context)
-        plain_message = strip_tags(html_message)
-        msg = EmailMultiAlternatives(
-            subject="Deine Schul-AG Anmeldung",
-            body=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[student_profile.user.email],
-            bcc=['eltern-ags-sgs@googlegroups.com']
-        )
-        msg.attach_alternative(html_message, "text/html")
-        msg.send()
-        student_profile.confirmation_email_sent = True
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning("Could not send confirmation email: %s", e)
-        student_profile.confirmation_email_sent = False
-        
+            Anmeldung.objects.create(schueler=student_profile, ag=ag, prio=i+1)
+
+    # Bestätigung im Hintergrund senden, damit ein langsamer Mailserver die Anmeldung nicht blockiert.
+    from .tasks import send_registration_confirmation_task
+    student_profile.confirmation_email_sent = False
     student_profile.acceptance_email_sent = False
     student_profile.save()
-    
+    send_registration_confirmation_task.enqueue(student_profile.id)
+
     return len(valid_selections) == len(ag_ids)
 
 def get_student_dashboard_data(user):
