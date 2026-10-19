@@ -3,6 +3,7 @@ import os
 import logging
 import smtplib
 import time
+from datetime import date, timedelta
 
 logger = logging.getLogger(__name__)
 from reportlab.lib.pagesizes import A4
@@ -12,7 +13,9 @@ from django.core.mail import EmailMultiAlternatives, get_connection
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
-from .models import Anmeldung, AG, SchuelerProfile
+from django.utils import timezone
+from django.db import IntegrityError, transaction
+from .models import Anmeldung, AG, SchuelerProfile, TerminErinnerung
 from collections import defaultdict
 
 BCC_ADRESSE = 'eltern-ags-sgs@googlegroups.com'
@@ -441,3 +444,91 @@ def send_allocation_emails(only_unsent=False, send_students=True, send_leaders=T
     finally:
         connection.close()
     return results
+
+
+def _termin_daten(ag):
+    """Liefert (datum, termin) für alle Termine einer AG mit gültigem ISO-Datum."""
+    if not isinstance(ag.termine, list):
+        return []
+    result = []
+    for termin in ag.termine:
+        try:
+            result.append((date.fromisoformat(termin.get('datum', '')), termin))
+        except (AttributeError, TypeError, ValueError):
+            continue
+    return result
+
+
+class _ErinnerungsLaufAbbrechen(Exception):
+    """Vorübergehender SMTP-Fehler: Der Rest des Laufs wird auf den nächsten stündlichen Lauf verschoben."""
+
+
+def send_termin_reminders(heute=None):
+    """
+    Erinnert zugelassene Teilnehmer an AG-Termine, die in den nächsten REMINDER_DAYS_BEFORE Tagen stattfinden.
+    Erinnert wird erst, wenn die Familie die Zuteilungsmail bekommen hat. Jede Anmeldung wird pro Termin nur
+    einmal erinnert (TerminErinnerung); wer am Stichtag verpasst wurde, wird beim nächsten Lauf nachträglich
+    erinnert, solange der Termin noch in der Zukunft liegt. Bei einem vorübergehenden SMTP-Fehler bricht der
+    Lauf ab, statt jeden Empfänger mit Backoff durchzuprobieren.
+    """
+    heute = heute or timezone.localdate()
+    bis = heute + timedelta(days=settings.REMINDER_DAYS_BEFORE)
+    results = {'sent': 0, 'failed': 0, 'abgebrochen': False}
+
+    connection = get_connection()
+    try:
+        for ag in AG.objects.filter(status=AG.Status.APPROVED):
+            for datum, termin in _termin_daten(ag):
+                if not heute < datum <= bis:
+                    continue
+                anmeldungen = ag.anmeldungen.filter(
+                    status=Anmeldung.Status.ACCEPTED, schueler__acceptance_email_sent=True
+                ).exclude(erinnerungen__datum=datum).select_related('schueler__user')
+                for anmeldung in anmeldungen:
+                    ergebnis = send_single_termin_reminder(anmeldung, datum, termin, connection=connection)
+                    if ergebnis:
+                        results['sent'] += 1
+                    elif ergebnis is False:
+                        results['failed'] += 1
+    except _ErinnerungsLaufAbbrechen:
+        results['failed'] += 1
+        results['abgebrochen'] = True
+    finally:
+        connection.close()
+    return results
+
+
+def send_single_termin_reminder(anmeldung, datum, termin, connection=None):
+    """
+    Returns True if sent, False on a permanent error (marked as failed, not retried) and None if another
+    run already claimed this reminder. Raises _ErinnerungsLaufAbbrechen on a temporary error.
+    """
+    # Erst den Termin beanspruchen, dann senden: Ein paralleler Lauf scheitert am UniqueConstraint und überspringt.
+    try:
+        with transaction.atomic():
+            marker = TerminErinnerung.objects.create(anmeldung=anmeldung, datum=datum)
+    except IntegrityError:
+        return None
+
+    schueler = anmeldung.schueler
+    context = {'schueler': schueler, 'ag': anmeldung.ag, 'datum': datum, 'termin': termin}
+    html_message = render_to_string('ags/emails/reminder.html', context)
+    msg = EmailMultiAlternatives(
+        subject=f"Erinnerung: {anmeldung.ag.name} am {datum:%d.%m.%Y}",
+        body=strip_tags(html_message),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[schueler.user.email],
+        connection=connection,
+    )
+    msg.attach_alternative(html_message, "text/html")
+    try:
+        _senden(msg)
+    except Exception as e:
+        logger.error("Failed to send reminder to %s for %s on %s: %s", schueler.user.email, anmeldung.ag.name, datum, e)
+        if _ist_voruebergehend(e):
+            marker.delete()
+            raise _ErinnerungsLaufAbbrechen() from e
+        # Dauerhafter Fehler (z.B. ungültige Adresse): nicht stündlich neu versuchen.
+        TerminErinnerung.objects.filter(id=marker.id).update(fehlgeschlagen=True)
+        return False
+    return True

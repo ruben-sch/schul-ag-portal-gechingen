@@ -70,7 +70,11 @@ services:
   worker:
     image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:latest
     # Arbeitet Hintergrund-Aufgaben (E-Mail-Versand) ab; Migrationen führt der Web-Container aus.
-    command: python manage.py db_worker
+    # Daneben stündlich Termin-Erinnerungen verschicken (idempotent, siehe send_reminders);
+    # timeout verhindert, dass ein hängender Lauf die Schleife dauerhaft anhält.
+    command: >
+      sh -c "while true; do timeout 3000 python manage.py send_reminders; sleep 3600; done &
+             exec python manage.py db_worker"
     # SIGTERM lässt den Worker das laufende Mail-Paket noch fertig senden.
     stop_grace_period: 2m
     environment: *app-env-prod
@@ -131,6 +135,7 @@ services:
   worker-staging:
     image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:staging
     # Arbeitet Hintergrund-Aufgaben (E-Mail-Versand) ab; Migrationen führt der Web-Container aus.
+    # Keine automatischen Termin-Erinnerungen auf Staging, damit keine echten Eltern angeschrieben werden.
     command: python manage.py db_worker
     # SIGTERM lässt den Worker das laufende Mail-Paket noch fertig senden.
     stop_grace_period: 2m

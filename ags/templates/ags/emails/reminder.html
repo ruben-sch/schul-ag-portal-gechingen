@@ -1,0 +1,20 @@
+{% extends "ags/emails/base_email.html" %}
+
+{% block content %}
+<h1>Hallo {{ schueler.name }},</h1>
+<p>kleine Erinnerung: Bald findet deine AG <strong>{{ ag.name }}</strong> statt.</p>
+
+<div class="ag-item">
+    <div class="ag-title">{{ ag.name }}</div>
+    <div class="text-muted">
+        <strong>Wann:</strong> {{ datum|date:"l, d.m.Y" }}{% if termin.start %}, {{ termin.start }}{% if termin.ende %} bis {{ termin.ende }}{% endif %} Uhr{% endif %}<br>
+        <strong>Ort:</strong> {{ ag.ort|default:"Wird noch bekannt gegeben" }}<br>
+        {% if ag.mitzubringen %}<strong>Mitzubringen:</strong> {{ ag.mitzubringen }}<br>{% endif %}
+        <strong>Leiter:</strong> {{ ag.verantwortlicher_name }} ({{ ag.verantwortlicher_email }})
+    </div>
+</div>
+
+<p style="margin-top: 30px; font-size: 14px;" class="text-muted">
+    <em>Falls du nicht teilnehmen kannst, sag bitte möglichst früh beim Leiter der AG ab.</em>
+</p>
+{% endblock %}

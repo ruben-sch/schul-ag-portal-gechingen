@@ -98,6 +98,24 @@ class Anmeldung(models.Model):
         verbose_name = "Anmeldung"
         verbose_name_plural = "Anmeldungen"
 
+class TerminErinnerung(models.Model):
+    """Merkt sich, dass für einen AG-Termin bereits eine Erinnerung an diese Anmeldung verschickt wurde."""
+    anmeldung = models.ForeignKey(Anmeldung, on_delete=models.CASCADE, related_name='erinnerungen')
+    datum = models.DateField()
+    gesendet_am = models.DateTimeField(auto_now_add=True)
+    # Dauerhafter Versandfehler (z.B. ungültige Adresse); wird nicht erneut versucht.
+    fehlgeschlagen = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "Termin-Erinnerung"
+        verbose_name_plural = "Termin-Erinnerungen"
+        constraints = [
+            models.UniqueConstraint(fields=['anmeldung', 'datum'], name='unique_erinnerung_pro_termin')
+        ]
+
+    def __str__(self):
+        return f"{self.anmeldung.schueler.name} - {self.anmeldung.ag.name} am {self.datum:%d.%m.%Y}"
+
 class ArchivEintrag(models.Model):
     schueler_name = models.CharField(max_length=200)
     schueler_email = models.EmailField()

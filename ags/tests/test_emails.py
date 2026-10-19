@@ -2,7 +2,7 @@ from django.test import TestCase, override_settings
 from django.core import mail
 from django.conf import settings
 from django.contrib.auth.models import User
-from ags.models import AG, SchuelerProfile, Anmeldung, AppConfig
+from ags.models import AG, SchuelerProfile, Anmeldung, AppConfig, TerminErinnerung
 from ags.emails import send_allocation_emails
 
 class EmailTest(TestCase):
@@ -367,3 +367,119 @@ class LeaderPreviewEmailTest(TestCase):
         mail.outbox = []
         send_single_leader_preview_email(self.ag)
         self.assertIn('Sportzeug<br>Trinkflasche', mail.outbox[0].alternatives[0][0])
+
+class TerminReminderTest(TestCase):
+    def setUp(self):
+        from datetime import date
+        self.heute = date(2026, 11, 1)
+        self.ag = AG.objects.create(name="Tanz AG", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4, status='APPROVED',
+                                    ort='Aula', mitzubringen='Turnschuhe',
+                                    termine=[{'datum': '2026-11-03', 'start': '14:00', 'ende': '15:00'},
+                                             {'datum': '2026-11-10', 'start': '14:00', 'ende': '15:00'},
+                                             {'datum': 'kaputt'}],
+                                    verantwortlicher_email='l@test.de', verantwortlicher_name='Frau Tanz')
+        u = User.objects.create(username="eltern@test.de", email="eltern@test.de")
+        p = SchuelerProfile.objects.create(user=u, name="Kind", klassenstufe=2, acceptance_email_sent=True)
+        self.anm = Anmeldung.objects.create(schueler=p, ag=self.ag, prio=1, status='ACCEPTED')
+        u2 = User.objects.create(username="warte@test.de", email="warte@test.de")
+        p2 = SchuelerProfile.objects.create(user=u2, name="Wartend", klassenstufe=2)
+        Anmeldung.objects.create(schueler=p2, ag=self.ag, prio=1, status='REJECTED')
+
+    def test_reminder_two_days_before_only_once(self):
+        from ags.emails import send_termin_reminders
+        mail.outbox = []
+        self.assertEqual(send_termin_reminders(heute=self.heute), {'sent': 1, 'failed': 0, 'abgebrochen': False})
+        self.assertEqual(mail.outbox[0].to, ['eltern@test.de'])
+        self.assertIn('03.11.2026', mail.outbox[0].subject)
+        html = mail.outbox[0].alternatives[0][0]
+        self.assertIn('Aula', html)
+        self.assertIn('Turnschuhe', html)
+        self.assertEqual(send_termin_reminders(heute=self.heute)['sent'], 0)
+
+    def test_catch_up_day_before_but_not_after(self):
+        from datetime import timedelta
+        from ags.emails import send_termin_reminders
+        self.assertEqual(send_termin_reminders(heute=self.heute + timedelta(days=1))['sent'], 1)
+        self.assertEqual(send_termin_reminders(heute=self.heute + timedelta(days=2))['sent'], 0)
+
+    def test_nothing_when_termin_far_away(self):
+        from datetime import timedelta
+        from ags.emails import send_termin_reminders
+        self.assertEqual(send_termin_reminders(heute=self.heute - timedelta(days=1))['sent'], 0)
+
+    def test_failed_send_is_retried_next_run(self):
+        from unittest import mock
+        from django.core.mail.backends.locmem import EmailBackend
+        from ags.emails import send_termin_reminders
+        with mock.patch.object(EmailBackend, 'send_messages', side_effect=TimeoutError()):
+            self.assertEqual(send_termin_reminders(heute=self.heute), {'sent': 0, 'failed': 1, 'abgebrochen': True})
+        self.assertFalse(TerminErinnerung.objects.exists())
+        self.assertEqual(send_termin_reminders(heute=self.heute)['sent'], 1)
+
+    def test_temporary_error_aborts_run(self):
+        from unittest import mock
+        from django.core.mail.backends.locmem import EmailBackend
+        from ags.emails import send_termin_reminders
+        u = User.objects.create(username="zwei@test.de", email="zwei@test.de")
+        p = SchuelerProfile.objects.create(user=u, name="Zwei", klassenstufe=2, acceptance_email_sent=True)
+        Anmeldung.objects.create(schueler=p, ag=self.ag, prio=1, status='ACCEPTED')
+        with mock.patch.object(EmailBackend, 'send_messages', side_effect=TimeoutError()) as send:
+            send_termin_reminders(heute=self.heute)
+        self.assertEqual(send.call_count, 1)
+
+    def test_permanent_error_is_not_retried(self):
+        from unittest import mock
+        import smtplib
+        from django.core.mail.backends.locmem import EmailBackend
+        from ags.emails import send_termin_reminders
+        error = smtplib.SMTPDataError(550, b"Mailbox unavailable")
+        with mock.patch.object(EmailBackend, 'send_messages', side_effect=error):
+            self.assertEqual(send_termin_reminders(heute=self.heute)['failed'], 1)
+        self.assertTrue(TerminErinnerung.objects.get().fehlgeschlagen)
+        mail.outbox = []
+        self.assertEqual(send_termin_reminders(heute=self.heute)['sent'], 0)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_claimed_reminder_is_skipped(self):
+        from ags.emails import send_single_termin_reminder
+        from datetime import date
+        TerminErinnerung.objects.create(anmeldung=self.anm, datum=date(2026, 11, 3))
+        mail.outbox = []
+        self.assertIsNone(send_single_termin_reminder(self.anm, date(2026, 11, 3), {}))
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_no_reminder_before_acceptance_email(self):
+        from ags.emails import send_termin_reminders
+        SchuelerProfile.objects.update(acceptance_email_sent=False)
+        self.assertEqual(send_termin_reminders(heute=self.heute)['sent'], 0)
+
+    def test_no_reminder_for_unapproved_ag(self):
+        from ags.emails import send_termin_reminders
+        AG.objects.filter(id=self.ag.id).update(status='SUBMITTED')
+        self.assertEqual(send_termin_reminders(heute=self.heute)['sent'], 0)
+
+    def test_legacy_string_termine_are_ignored(self):
+        from ags.emails import send_termin_reminders
+        AG.objects.filter(id=self.ag.id).update(termine="Dienstags 14 Uhr")
+        self.assertEqual(send_termin_reminders(heute=self.heute)['sent'], 0)
+
+    def test_command_respects_earliest_hour(self):
+        from io import StringIO
+        from unittest import mock
+        from django.core.management import call_command
+        from django.test import override_settings
+        out = StringIO()
+        with override_settings(REMINDER_EARLIEST_HOUR=25):
+            call_command('send_reminders', stdout=out)
+        self.assertIn('keine Erinnerungen', out.getvalue())
+        with mock.patch('ags.emails.timezone.localdate', return_value=self.heute):
+            out = StringIO()
+            call_command('send_reminders', '--sofort', stdout=out)
+        self.assertIn('1 gesendet', out.getvalue())
+
+    def test_admin_is_read_only(self):
+        from django.urls import reverse
+        admin = User.objects.create(username="su@test.de", is_staff=True, is_superuser=True)
+        self.client.force_login(admin)
+        self.assertEqual(self.client.get(reverse('admin:ags_terminerinnerung_add')).status_code, 403)
+        self.assertEqual(self.client.get(reverse('admin:ags_terminerinnerung_changelist')).status_code, 200)

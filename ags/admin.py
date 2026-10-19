@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import AG, SchuelerProfile, Anmeldung, AppConfig, ArchivEintrag
+from .models import AG, SchuelerProfile, Anmeldung, AppConfig, ArchivEintrag, TerminErinnerung
 
 @admin.register(ArchivEintrag)
 class ArchivEintragAdmin(admin.ModelAdmin):
@@ -95,3 +95,18 @@ class AppConfigAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         # Only one config allowed
         return not AppConfig.objects.exists()
+
+
+@admin.register(TerminErinnerung)
+class TerminErinnerungAdmin(admin.ModelAdmin):
+    list_display = ('anmeldung', 'datum', 'gesendet_am', 'fehlgeschlagen')
+    list_filter = ('datum', 'fehlgeschlagen')
+    list_select_related = ('anmeldung__schueler', 'anmeldung__ag')
+    readonly_fields = ('anmeldung', 'datum', 'gesendet_am', 'fehlgeschlagen')
+
+    # Nur Protokoll: Einträge entstehen ausschließlich durch send_reminders.
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
