@@ -71,7 +71,7 @@ def get_student_dashboard_data(user):
 
 def get_managed_ags_data(user):
     """Returns AGs managed by a user with prepared display data."""
-    managed_ags = AG.objects.filter(verantwortlicher_email=user.email).prefetch_related(
+    managed_ags = AG.objects.filter(verantwortlicher_email__iexact=user.email).prefetch_related(
         'anmeldungen__schueler'
     )
     
@@ -229,9 +229,37 @@ def start_new_semester():
 
 
 def ensure_leader_user(ag):
-    """Legt für die AG-Leitung ein Benutzerkonto an, damit sie sich per Magic Link anmelden kann."""
-    user, _ = User.objects.get_or_create(
-        username=ag.verantwortlicher_email,
-        defaults={'email': ag.verantwortlicher_email, 'first_name': ag.verantwortlicher_name}
-    )
+    """Legt für die AG-Leitung ein Benutzerkonto an, damit sie sich per Magic Link anmelden kann.
+
+    Ein vorhandenes Konto mit derselben E-Mail (Groß-/Kleinschreibung egal) wird wiederverwendet,
+    damit Login und Leiter-Dashboard eindeutig bleiben.
+    """
+    email = ag.verantwortlicher_email.strip().lower()
+    user = (User.objects.filter(email__iexact=email).order_by('id').first()
+            or User.objects.filter(username__iexact=email).order_by('id').first())
+    if user is None:
+        return User.objects.create(username=email, email=email, first_name=ag.verantwortlicher_name)
+    if not user.email or not user.first_name:
+        user.email = user.email or email
+        user.first_name = user.first_name or ag.verantwortlicher_name
+        user.save(update_fields=['email', 'first_name'])
     return user
+
+
+def ag_bearbeiten_warnungen(ag):
+    """Hinweise, wenn eine geänderte AG nicht mehr zu den vorhandenen Anmeldungen passt."""
+    warnungen = []
+    zugelassen = ag.anmeldungen.filter(status=Anmeldung.Status.ACCEPTED).count()
+    if zugelassen > ag.kapazitaet:
+        warnungen.append(
+            f"Es sind bereits {zugelassen} Kinder zugelassen, die Kapazität beträgt jetzt aber nur {ag.kapazitaet}."
+        )
+    ausserhalb = ag.anmeldungen.exclude(
+        schueler__klassenstufe__range=(ag.klassenstufe_min, ag.klassenstufe_max)
+    ).count()
+    if ausserhalb:
+        warnungen.append(
+            f"{ausserhalb} Anmeldung(en) liegen außerhalb der neuen Klassenstufen "
+            f"{ag.klassenstufe_min}–{ag.klassenstufe_max}."
+        )
+    return warnungen

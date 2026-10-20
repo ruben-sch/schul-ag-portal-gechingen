@@ -73,9 +73,17 @@ class AGEditView(UpdateView):
         return f"{self.success_url}?tab=ags"
 
     def form_valid(self, form: AGEditForm) -> HttpResponse:
+        vorher = AG.objects.get(pk=self.object.pk).verantwortlicher_email
+        leitung_geaendert = vorher.strip().lower() != form.cleaned_data['verantwortlicher_email']
+        if leitung_geaendert:
+            form.instance.leader_email_sent = False
         response = super().form_valid(form)
         services.ensure_leader_user(self.object)
         messages.success(self.request, f"AG \"{self.object.name}\" wurde gespeichert.")
+        if leitung_geaendert:
+            messages.info(self.request, "Die AG-Leitung wurde geändert. Die Teilnehmerliste muss erneut verschickt werden.")
+        for warnung in services.ag_bearbeiten_warnungen(self.object):
+            messages.warning(self.request, warnung)
         return response
 
 class RegisterSchuelerStep1View(FormView):
@@ -140,16 +148,15 @@ class RequestMagicLinkView(FormView):
 
     def form_valid(self, form):
         email = form.cleaned_data['email']
-        try:
-            user = User.objects.get(email=email)
+        user = User.objects.filter(email__iexact=email).order_by('id').first()
+        if user is not None:
             link = self.request.build_absolute_uri(reverse('dashboard'))
             link += get_query_string(user)
             print(f"MAGIC LINK FOR {email}: {link}")
             messages.success(self.request, f"Ein Anmelde-Link wurde an {email} gesendet (siehe Server-Log).")
             return super().form_valid(form)
-        except User.DoesNotExist:
-            messages.error(self.request, "Diese E-Mail-Adresse ist nicht bekannt.")
-            return self.form_invalid(form)
+        messages.error(self.request, "Diese E-Mail-Adresse ist nicht bekannt.")
+        return self.form_invalid(form)
 
 @login_required
 def dashboard(request):

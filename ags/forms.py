@@ -27,10 +27,23 @@ class AGProposalForm(forms.ModelForm):
             'ort': 'Ort / Räumlichkeit',
         }
 
+    def clean_verantwortlicher_email(self):
+        return self.cleaned_data['verantwortlicher_email'].strip().lower()
+
 class AGEditForm(AGProposalForm):
     """Bearbeiten einer AG im Admin-Bereich: wie der Vorschlag, zusätzlich mit Status."""
     class Meta(AGProposalForm.Meta):
         fields = AGProposalForm.Meta.fields + ['status']
+
+    def clean_status(self):
+        status = self.cleaned_data['status']
+        ag = self.instance
+        if (ag.pk and ag.status == AG.Status.APPROVED and status != AG.Status.APPROVED
+                and ag.anmeldungen.exists()):
+            raise forms.ValidationError(
+                "Die AG hat bereits Anmeldungen und kann nicht mehr auf \"Eingereicht\" zurückgesetzt werden."
+            )
+        return status
 
 
 class SchuelerFirstStepForm(forms.Form):
