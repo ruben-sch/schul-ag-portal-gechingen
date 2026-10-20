@@ -14,8 +14,8 @@
         <strong>Klassenstufe:</strong> {{ ag.klassenstufe_min }} bis {{ ag.klassenstufe_max }}<br>
         <strong>Maximale Teilnehmerzahl:</strong> {{ ag.kapazitaet }}<br>
         <strong>Kosten:</strong> {{ ag.kosten }} €<br>
-        <strong>Mitzubringen:</strong> {{ ag.mitzubringen|default:"-" }}<br>
-        <strong>Hinweise:</strong> {{ ag.hinweise|default:"-" }}<br>
+        <strong>Mitzubringen:</strong> {{ ag.mitzubringen|default:"-"|linebreaksbr }}<br>
+        <strong>Hinweise:</strong> {{ ag.hinweise|default:"-"|linebreaksbr }}<br>
         <strong>Kontakt:</strong> {{ ag.verantwortlicher_name }}, {{ ag.verantwortlicher_email }}{% if ag.verantwortlicher_telefon %}, {{ ag.verantwortlicher_telefon }}{% endif %}
     </div>
 </div>

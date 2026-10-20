@@ -87,5 +87,5 @@ def send_leader_preview_emails_task(only_unsent=True):
 @task
 def send_leader_preview_email_task(ag_id):
     ag = AG.objects.get(id=ag_id)
-    if not emails.send_single_leader_preview_email(ag):
+    if emails.send_single_leader_preview_email(ag) is False:
         raise EmailVersandFehler(f"Vorläufige Liste für {ag.name} konnte nicht gesendet werden.")

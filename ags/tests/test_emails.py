@@ -296,3 +296,74 @@ class LeaderPreviewEmailTest(TestCase):
         self.client.post(reverse('resend_leader_email'), {'ag_id': self.ag.id, 'kind': 'preview'})
         self.assertEqual(len(mail.outbox), 2)
         self.assertIn('Vorläufige', mail.outbox[1].subject)
+
+    def test_blocked_before_lottery(self):
+        from django.urls import reverse
+        from ags.emails import send_leader_preview_emails, send_single_leader_preview_email
+        Anmeldung.objects.update(status='PENDING')
+        mail.outbox = []
+        self.assertEqual(send_leader_preview_emails(), {'sent': 0, 'failed': 0})
+        self.assertIsNone(send_single_leader_preview_email(self.ag))
+        admin = User.objects.create(username="admin@test.de", is_staff=True)
+        self.client.force_login(admin)
+        response = self.client.post(reverse('send_bulk_emails'), {'target': 'leader_preview'}, follow=True)
+        self.assertContains(response, 'erst nach der Auslosung')
+        self.client.post(reverse('resend_leader_email'), {'ag_id': self.ag.id, 'kind': 'preview'})
+        self.assertEqual(len(mail.outbox), 0)
+        self.ag.refresh_from_db()
+        self.assertFalse(self.ag.leader_preview_sent)
+
+    def test_skipped_after_final_list(self):
+        from ags.emails import send_leader_preview_emails
+        AG.objects.filter(id=self.ag.id).update(leader_email_sent=True)
+        mail.outbox = []
+        self.assertEqual(send_leader_preview_emails(only_unsent=False), {'sent': 0, 'failed': 0})
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_reset_lottery_resets_flag(self):
+        from ags.emails import send_leader_preview_emails
+        from ags.utils import reset_lottery
+        send_leader_preview_emails()
+        reset_lottery()
+        self.ag.refresh_from_db()
+        self.assertFalse(self.ag.leader_preview_sent)
+
+    def test_non_staff_cannot_send(self):
+        from django.urls import reverse
+        user = User.objects.create(username="eltern@test.de")
+        self.client.force_login(user)
+        mail.outbox = []
+        response = self.client.post(reverse('send_bulk_emails'), {'target': 'leader_preview'})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('login', response.url)
+        self.client.post(reverse('resend_leader_email'), {'ag_id': self.ag.id, 'kind': 'preview'})
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_smtp_error_keeps_flag_false(self):
+        from unittest import mock
+        import smtplib
+        from ags.emails import send_leader_preview_emails
+        with mock.patch('ags.emails._senden', side_effect=smtplib.SMTPRecipientsRefused({})):
+            self.assertEqual(send_leader_preview_emails(), {'sent': 0, 'failed': 1})
+        self.ag.refresh_from_db()
+        self.assertFalse(self.ag.leader_preview_sent)
+
+    def test_new_lottery_during_send_is_not_marked_sent(self):
+        from unittest import mock
+        from ags.emails import send_single_leader_preview_email
+
+        def neue_losung(msg):
+            Anmeldung.objects.update(status='REJECTED')
+
+        with mock.patch('ags.emails._senden', side_effect=neue_losung):
+            self.assertFalse(send_single_leader_preview_email(self.ag))
+        self.ag.refresh_from_db()
+        self.assertFalse(self.ag.leader_preview_sent)
+
+    def test_multiline_fields_keep_line_breaks(self):
+        from ags.emails import send_single_leader_preview_email
+        self.ag.mitzubringen = "Sportzeug\nTrinkflasche"
+        self.ag.save()
+        mail.outbox = []
+        send_single_leader_preview_email(self.ag)
+        self.assertIn('Sportzeug<br>Trinkflasche', mail.outbox[0].alternatives[0][0])

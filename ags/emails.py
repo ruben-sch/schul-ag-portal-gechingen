@@ -353,8 +353,16 @@ def send_single_leader_preview_email(ag, connection=None):
     """
     Sends the preliminary participant list (after the lottery, before notifying students) to the AG leader
     for review. No PDF attachments; corrections come back by reply.
-    Returns True if sent successfully, False otherwise.
+    Returns True if sent successfully, False on error and None if sending is not allowed
+    (before the lottery or after the final list).
     """
+    from .services import leader_preview_blocked_reason
+    sperrgrund = leader_preview_blocked_reason(ag)
+    if sperrgrund:
+        logger.info("Vorläufige Liste für %s nicht gesendet: %s", ag.name, sperrgrund)
+        return None
+
+    stand = _listen_stand(ag)
     participants = Anmeldung.objects.filter(
         ag=ag, status=Anmeldung.Status.ACCEPTED
     ).select_related('schueler__user').order_by('schueler__name')
@@ -378,23 +386,37 @@ def send_single_leader_preview_email(ag, connection=None):
     except Exception as e:
         logger.error(f"Failed to send leader preview email for {ag.name} to {ag.verantwortlicher_email}: {e}")
         return False
-    ag.leader_preview_sent = True
-    ag.save(update_fields=['leader_preview_sent'])
+    # Lief während des Versands eine neue Auslosung, ist die verschickte Liste veraltet und das
+    # von run_lottery zurückgesetzte Flag darf nicht wieder auf True springen.
+    if _listen_stand(ag) != stand:
+        logger.warning("Liste für %s hat sich während des Versands geändert; vorläufige Liste nicht als gesendet markiert.",
+                       ag.name)
+        return False
+    AG.objects.filter(id=ag.id).update(leader_preview_sent=True)
     return True
+
+
+def _listen_stand(ag):
+    return sorted(Anmeldung.objects.filter(ag=ag).values_list('id', 'status'))
 
 
 def send_leader_preview_emails(only_unsent=True):
     """Sends the preliminary list to the leaders of all approved AGs. Returns sent/failed counts."""
+    from .services import leader_preview_blocked_reason
     results = {'sent': 0, 'failed': 0}
-    ags = AG.objects.filter(status=AG.Status.APPROVED)
+    if leader_preview_blocked_reason():
+        return results
+    # AGs mit verschickter endgültiger Liste brauchen keine vorläufige mehr.
+    ags = AG.objects.filter(status=AG.Status.APPROVED, leader_email_sent=False)
     if only_unsent:
         ags = ags.filter(leader_preview_sent=False)
     connection = get_connection()
     try:
         for ag in ags:
-            if send_single_leader_preview_email(ag, connection=connection):
+            ergebnis = send_single_leader_preview_email(ag, connection=connection)
+            if ergebnis:
                 results['sent'] += 1
-            else:
+            elif ergebnis is False:
                 results['failed'] += 1
     finally:
         connection.close()
