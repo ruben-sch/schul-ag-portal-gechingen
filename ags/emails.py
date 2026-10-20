@@ -43,8 +43,8 @@ def _verbindung_oeffnen(connection):
         try:
             if smtp.noop()[0] == 250:
                 return
-        except Exception:
-            pass
+        except Exception as e:
+            logger.info("SMTP-Verbindung getrennt, baue sie neu auf: %s", e)
         try:
             connection.close()
         except Exception:
