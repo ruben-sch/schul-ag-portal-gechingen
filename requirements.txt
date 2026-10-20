@@ -10,4 +10,4 @@ beautifulsoup4
 django-crispy-forms
 crispy-bootstrap5
 reportlab==5.0.1
-django-tasks-db
+django-tasks-db==0.13.0

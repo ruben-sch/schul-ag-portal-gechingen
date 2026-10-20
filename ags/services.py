@@ -1,6 +1,10 @@
+import logging
+
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Min, Max, Q
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig
+
+logger = logging.getLogger(__name__)
 
 def get_available_ags_for_student(klassenstufe):
     """Returns AGs suitable for a specific grade level."""
@@ -40,15 +44,25 @@ def update_student_registrations(student_profile, ag_ids):
         for i, ag_id in enumerate(valid_selections):
             ag = AG.objects.get(id=ag_id)
             Anmeldung.objects.create(schueler=student_profile, ag=ag, prio=i+1)
-
-    # Bestätigung im Hintergrund senden, damit ein langsamer Mailserver die Anmeldung nicht blockiert.
-    from .tasks import send_registration_confirmation_task
-    student_profile.confirmation_email_sent = False
-    student_profile.acceptance_email_sent = False
-    student_profile.save()
-    send_registration_confirmation_task.enqueue(student_profile.id)
+        student_profile.confirmation_email_sent = False
+        student_profile.acceptance_email_sent = False
+        student_profile.save(update_fields=['confirmation_email_sent', 'acceptance_email_sent'])
+        # Erst nach dem Commit einreihen, damit der Worker die gespeicherte Anmeldung sieht.
+        transaction.on_commit(lambda: _bestaetigung_einreihen(student_profile.id))
 
     return len(valid_selections) == len(ag_ids)
+
+
+def _bestaetigung_einreihen(schueler_id):
+    """
+    Reiht die Anmeldebestätigung im Hintergrund ein. Scheitert das Einreihen, bleibt die Anmeldung
+    gültig; confirmation_email_sent bleibt False, sodass der Admin die Bestätigung nachsenden kann.
+    """
+    from .tasks import send_registration_confirmation_task
+    try:
+        send_registration_confirmation_task.enqueue(schueler_id)
+    except Exception:
+        logger.exception("Anmeldebestätigung für Schüler %s konnte nicht eingereiht werden.", schueler_id)
 
 def get_student_dashboard_data(user):
     """Returns all registrations for student profiles linked to a user."""

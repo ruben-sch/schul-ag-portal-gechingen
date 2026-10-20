@@ -8,7 +8,7 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import TemplateView, CreateView, FormView
 from django.conf import settings
 from datetime import datetime
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 import csv
 from django.db.models import Count, Sum, Min, Max, Q
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -172,7 +172,7 @@ def run_lottery_view(request):
     return redirect('stats_dashboard')
 
 @user_passes_test(lambda u: u.is_staff)
-def manual_intervention(request):
+def manual_intervention(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         action = request.POST.get('action')
         anm_id = request.POST.get('anmeldung_id')
@@ -227,7 +227,7 @@ def manual_intervention(request):
     })
 
 @user_passes_test(lambda u: u.is_staff)
-def resend_email(request):
+def resend_email(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         student_id = request.POST.get('student_id')
         email_type = request.POST.get('email_type')
@@ -254,7 +254,7 @@ def resend_email(request):
     return redirect('manual_intervention')
 
 @user_passes_test(lambda u: u.is_staff)
-def resend_leader_email(request):
+def resend_leader_email(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         ag_id = request.POST.get('ag_id')
         try:
@@ -281,7 +281,7 @@ def stats_export(request):
     })
 
 @user_passes_test(lambda u: u.is_staff)
-def test_email(request):
+def test_email(request: HttpRequest) -> HttpResponse:
     try:
         user_email = request.user.email
         if not user_email:
@@ -376,7 +376,7 @@ def export_ags_csv(request):
     return response
 
 @user_passes_test(lambda u: u.is_staff)
-def send_bulk_emails_view(request):
+def send_bulk_emails_view(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         target = request.POST.get('target')
         from .tasks import send_allocation_emails_task

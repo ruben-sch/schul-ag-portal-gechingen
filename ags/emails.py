@@ -28,28 +28,67 @@ def _ist_voruebergehend(exc):
     return isinstance(exc, (TimeoutError, ConnectionError))
 
 
+def _ist_abgelehnt(exc):
+    """True, wenn der Server die Nachricht ausdrücklich vorübergehend abgelehnt hat (SMTP 4xx), sie also nicht zugestellt ist."""
+    return isinstance(exc, smtplib.SMTPResponseException) and 400 <= exc.smtp_code < 500
+
+
+def _verbindung_oeffnen(connection):
+    """
+    Stellt sicher, dass die Verbindung offen ist, und baut eine vom Server getrennte Verbindung neu auf.
+    Fehler hier passieren vor dem Senden und können gefahrlos wiederholt werden.
+    """
+    smtp = getattr(connection, 'connection', None)
+    if smtp is not None:
+        try:
+            if smtp.noop()[0] == 250:
+                return
+        except Exception:
+            pass
+        try:
+            connection.close()
+        except Exception:
+            connection.connection = None
+    connection.open()
+
+
 def _senden(msg):
     """
     Sendet eine Nachricht mit bis zu MAX_VERSUCHE Versuchen und exponentiellem Backoff.
-    Dauerhafte Fehler (z.B. SMTP 5xx, ungültiger Empfänger) werden sofort weitergereicht.
+
+    Wiederholt wird nur, wenn die Nachricht sicher nicht zugestellt wurde: beim Verbindungsaufbau
+    oder wenn der Server sie mit SMTP 4xx ablehnt. Ein Timeout oder Abbruch während des Sendens
+    wird nicht wiederholt, weil der Server die Mail schon angenommen haben kann (sonst käme sie doppelt an).
+    Eine übergebene Verbindung bleibt offen, damit ein Bulk-Lauf sie weiterverwenden kann.
     """
-    for versuch in range(1, MAX_VERSUCHE + 1):
-        try:
-            msg.send(fail_silently=False)
-            return
-        except Exception as exc:
-            if versuch == MAX_VERSUCHE or not _ist_voruebergehend(exc):
-                raise
-            wartezeit = settings.EMAIL_RETRY_DELAY * 2 ** (versuch - 1)
-            logger.warning("E-Mail an %s fehlgeschlagen (Versuch %s/%s): %s. Neuer Versuch in %ss.",
-                           msg.to, versuch, MAX_VERSUCHE, exc, wartezeit)
-            # Eine abgebrochene Verbindung schließen, damit der nächste Versuch neu verbindet.
-            if msg.connection is not None:
-                try:
-                    msg.connection.close()
-                except Exception:
-                    msg.connection.connection = None
-            time.sleep(wartezeit)
+    eigene_verbindung = msg.connection is None
+    connection = msg.connection or get_connection()
+    try:
+        for versuch in range(1, MAX_VERSUCHE + 1):
+            try:
+                _verbindung_oeffnen(connection)
+            except Exception as exc:
+                if versuch == MAX_VERSUCHE or not _ist_voruebergehend(exc):
+                    raise
+                _warten(msg, versuch, exc)
+                continue
+            try:
+                connection.send_messages([msg])
+                return
+            except Exception as exc:
+                if versuch == MAX_VERSUCHE or not _ist_abgelehnt(exc):
+                    raise
+                _warten(msg, versuch, exc)
+    finally:
+        if eigene_verbindung:
+            connection.close()
+
+
+def _warten(msg, versuch, exc):
+    wartezeit = settings.EMAIL_RETRY_DELAY * 2 ** (versuch - 1)
+    logger.warning("E-Mail an %s fehlgeschlagen (Versuch %s/%s): %s. Neuer Versuch in %ss.",
+                   msg.to, versuch, MAX_VERSUCHE, exc, wartezeit)
+    time.sleep(wartezeit)
 
 
 def send_registration_confirmation(schueler, anmeldungen=None, connection=None):
@@ -195,7 +234,8 @@ def send_single_acceptance_email(schueler, ag_list=None, connection=None):
         msg.attach_alternative(html_message, "text/html")
         _senden(msg)
         schueler.acceptance_email_sent = True
-        schueler.save()
+        # Nur das Flag schreiben: Ein Bulk-Lauf hält das Objekt lange, Änderungen der Eltern sollen erhalten bleiben.
+        schueler.save(update_fields=['acceptance_email_sent'])
         return True
     except Exception as e:
         logger.error(f"Failed to send acceptance email to {schueler.user.email}: {e}")
@@ -204,7 +244,7 @@ def send_single_acceptance_email(schueler, ag_list=None, connection=None):
 def send_single_leader_email(ag, connection=None):
     """
     Sends the detailed email (participants + waitlist) to the AG leader.
-    Returns True if sent successfully, False otherwise.
+    Returns True if sent successfully, False on error and None if the AG has no registrations.
     """
     # Get participants (ACCEPTED)
     participants = Anmeldung.objects.filter(
@@ -217,7 +257,7 @@ def send_single_leader_email(ag, connection=None):
     ).select_related('schueler__user').order_by('prio', 'erstellt_am')
 
     if not participants.exists() and not waitlist.exists():
-        return False
+        return None
 
     subject = f"Teilnehmerliste & Warteliste für AG: {ag.name}"
     context = {
@@ -252,54 +292,78 @@ def send_single_leader_email(ag, connection=None):
         
         _senden(msg)
         ag.leader_email_sent = True
-        ag.save()
+        ag.save(update_fields=['leader_email_sent'])
         return True
     except Exception as e:
         logger.error(f"Failed to send leader email for {ag.name} to {ag.verantwortlicher_email}: {e}")
         return False
 
+def offene_zusagen(only_unsent=False):
+    """IDs der Schüler mit mindestens einer Zusage, optional nur die noch ohne Zuteilungsmail."""
+    qs = SchuelerProfile.objects.filter(anmeldungen__status=Anmeldung.Status.ACCEPTED)
+    if only_unsent:
+        qs = qs.filter(acceptance_email_sent=False)
+    return list(qs.distinct().order_by('id').values_list('id', flat=True))
+
+
+def offene_leiter_mails(only_unsent=False):
+    """IDs der genehmigten AGs, optional nur die noch ohne Leiter-Mail."""
+    qs = AG.objects.filter(status=AG.Status.APPROVED)
+    if only_unsent:
+        qs = qs.filter(leader_email_sent=False)
+    return list(qs.order_by('id').values_list('id', flat=True))
+
+
+def send_acceptance_emails(schueler_ids, only_unsent=False, connection=None):
+    """Sendet die Zuteilungsmails an die angegebenen Schüler. Gibt (gesendet, fehlgeschlagen) zurück."""
+    anmeldungen = Anmeldung.objects.filter(
+        schueler_id__in=schueler_ids, status=Anmeldung.Status.ACCEPTED
+    ).select_related('schueler__user', 'ag')
+    if only_unsent:
+        anmeldungen = anmeldungen.filter(schueler__acceptance_email_sent=False)
+    zuteilungen = defaultdict(list)
+    for anm in anmeldungen:
+        zuteilungen[anm.schueler].append(anm.ag)
+
+    sent = failed = 0
+    for schueler, ag_list in zuteilungen.items():
+        if send_single_acceptance_email(schueler, ag_list, connection=connection):
+            sent += 1
+        else:
+            failed += 1
+    return sent, failed
+
+
+def send_leader_emails(ag_ids, only_unsent=False, connection=None):
+    """Sendet die Teilnehmerlisten an die Leitungen der angegebenen AGs. Gibt (gesendet, fehlgeschlagen) zurück."""
+    ags = AG.objects.filter(id__in=ag_ids, status=AG.Status.APPROVED).order_by('id')
+    if only_unsent:
+        ags = ags.filter(leader_email_sent=False)
+    sent = failed = 0
+    for ag in ags:
+        ergebnis = send_single_leader_email(ag, connection=connection)
+        if ergebnis:
+            sent += 1
+        elif ergebnis is False:
+            failed += 1
+    return sent, failed
+
+
 def send_allocation_emails(only_unsent=False, send_students=True, send_leaders=True):
     """
-    Sends grouped emails to students and detailed lists to leaders.
+    Sends grouped emails to students and detailed lists to leaders in one run.
     Returns a dict with sent/failed counts for students and leaders.
     """
     results = {'students_sent': 0, 'students_failed': 0, 'leaders_sent': 0, 'leaders_failed': 0}
     # Eine SMTP-Verbindung für den ganzen Lauf statt einer pro Mail.
     connection = get_connection()
     try:
-        _send_allocation_emails(connection, results, only_unsent, send_students, send_leaders)
+        if send_students:
+            results['students_sent'], results['students_failed'] = send_acceptance_emails(
+                offene_zusagen(only_unsent), connection=connection)
+        if send_leaders:
+            results['leaders_sent'], results['leaders_failed'] = send_leader_emails(
+                offene_leiter_mails(only_unsent), connection=connection)
     finally:
         connection.close()
     return results
-
-
-def _send_allocation_emails(connection, results, only_unsent, send_students, send_leaders):
-
-    # 1. Group emails to Students (only those with ACCEPTED status)
-    if send_students:
-        accepted_anmeldungen = Anmeldung.objects.filter(status=Anmeldung.Status.ACCEPTED).select_related('schueler__user', 'ag')
-        student_allocations = defaultdict(list)
-        
-        for anm in accepted_anmeldungen:
-            if only_unsent and anm.schueler.acceptance_email_sent:
-                continue
-            student_allocations[anm.schueler].append(anm.ag)
-
-        for schueler, ag_list in student_allocations.items():
-            success = send_single_acceptance_email(schueler, ag_list, connection=connection)
-            if success:
-                results['students_sent'] += 1
-            else:
-                results['students_failed'] += 1
-
-    # 2. Detailed emails to Leaders (Participants + Waitlist)
-    if send_leaders:
-        ags = AG.objects.filter(status=AG.Status.APPROVED)
-        for ag in ags:
-            if only_unsent and ag.leader_email_sent:
-                continue
-            success = send_single_leader_email(ag, connection=connection)
-            if success:
-                results['leaders_sent'] += 1
-            else:
-                results['leaders_failed'] += 1

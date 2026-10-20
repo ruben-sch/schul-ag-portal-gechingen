@@ -100,7 +100,8 @@ class ViewTest(TestCase):
             'klassenstufe': 4,
             'notfall_telefon': '112'
         })
-        self.client.post(reverse('select_ags'), {'ags': [self.ag1.id]})
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(reverse('select_ags'), {'ags': [self.ag1.id]})
         
         user = User.objects.get(email='track@test.de')
         profile = SchuelerProfile.objects.get(user=user, name='Tracking Kind')
