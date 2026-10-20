@@ -70,6 +70,12 @@ class AGEditTest(TestCase):
         self.assertEqual(self.ag.kapazitaet, 10)
         self.assertEqual(self.ag.verantwortlicher_email, 'kunst@test.de')
 
+    def test_model_save_rejects_inverted_grade_range(self):
+        from django.core.exceptions import ValidationError
+        self.ag.klassenstufe_min, self.ag.klassenstufe_max = 3, 2
+        with self.assertRaises(ValidationError):
+            self.ag.save()
+
     def test_leader_change_reuses_existing_user_and_resets_mail_flag(self):
         User.objects.create(username='altkonto', email='Neu@Test.de')
         AG.objects.filter(pk=self.ag.pk).update(leader_email_sent=True)

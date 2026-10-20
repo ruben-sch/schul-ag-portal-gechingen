@@ -55,6 +55,12 @@ class AG(models.Model):
                 'klassenstufe_max': "Die höchste Klassenstufe darf nicht kleiner als die niedrigste sein."
             })
 
+    def save(self, *args, **kwargs):
+        # Nur clean() statt full_clean(): Altdaten mit sonst ungültigen Feldern sollen weiter speicherbar sein,
+        # z. B. wenn nach dem Mailversand ein Flag gesetzt wird.
+        self.clean()
+        super().save(*args, **kwargs)
+
     class Meta:
         verbose_name = "AG"
         verbose_name_plural = "AGs"
