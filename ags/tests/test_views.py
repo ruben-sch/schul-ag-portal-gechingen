@@ -282,12 +282,21 @@ class ViewTest(TestCase):
 
 
 class AdminAGOverviewTest(TestCase):
+    def setUp(self):
+        self.client.force_login(User.objects.create(username="staff@test.de", is_staff=True))
+
     def test_ag_tab_shows_leader_and_dates(self):
-        from ags.models import AG
-        AG.objects.create(name="Chor AG", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4, status='APPROVED', ort='Musiksaal',
+        AG.objects.create(name="Chor AG", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4, status=AG.Status.APPROVED, ort='Musiksaal',
                           termine=[{'datum': '2026-11-03', 'start': '14:00', 'ende': '15:00'}],
                           verantwortlicher_name='Frau Sing', verantwortlicher_email='sing@test.de', verantwortlicher_telefon='0123')
-        self.client.force_login(User.objects.create(username="staff@test.de", is_staff=True))
         res = self.client.get(reverse('stats_dashboard') + '?tab=ags')
         for text in ['Frau Sing', 'sing@test.de', '0123', '03.11.2026 (14:00-15:00)', 'Musiksaal']:
             self.assertContains(res, text)
+
+    def test_ag_tab_without_optional_fields(self):
+        AG.objects.create(name="Lese AG", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4, status=AG.Status.APPROVED,
+                          verantwortlicher_name='Herr Buch', verantwortlicher_email='buch@test.de')
+        res = self.client.get(reverse('stats_dashboard') + '?tab=ags')
+        self.assertContains(res, 'Keine Termine')
+        self.assertNotContains(res, 'bi-geo-alt-fill')
+        self.assertContains(res, 'buch@test.de</a></div>', html=False)
