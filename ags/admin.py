@@ -11,8 +11,8 @@ class ArchivEintragAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False # Nur via System-Reset
-from . import services
-from .utils import run_lottery, reset_lottery
+from . import halbjahr, services
+from .utils import reset_lottery
 from .tasks import send_allocation_emails_task
 
 @admin.action(description='Ausgewählte AGs genehmigen')
@@ -21,12 +21,11 @@ def make_approved(modeladmin, request, queryset):
 
 @admin.action(description='Losverfahren starten')
 def trigger_lottery(modeladmin, request, queryset):
-    from .services import lottery_blocked_reason
-    blocked = lottery_blocked_reason()
-    if blocked:
-        modeladmin.message_user(request, blocked, level=messages.ERROR)
+    try:
+        halbjahr.auslosen()
+    except halbjahr.Gesperrt as e:
+        modeladmin.message_user(request, str(e), level=messages.ERROR)
         return
-    run_lottery()
     modeladmin.message_user(request, "Losverfahren wurde ausgeführt.")
 
 @admin.action(description='Zuteilungen zurücksetzen (Undo)')

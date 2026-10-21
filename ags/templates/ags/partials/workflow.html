@@ -29,19 +29,19 @@
     <h2 class="h5 text-secondary mb-3 text-uppercase tracking-wide">Phase 3 · Anmeldung, Auslosung & Review</h2>
     <p class="text-light mb-3">
         {{ schueler_count }} Schüler mit {{ anmeldung_count }} Anmeldungen.
-        {% if lottery_done %}Auslosung ist erfolgt: {{ zugeteilte_count }} Schüler haben einen Platz.{% else %}Noch nicht ausgelost.{% endif %}
+        {% if phase.ausgelost %}Auslosung ist erfolgt: {{ zugeteilte_count }} Schüler haben einen Platz.{% else %}Noch nicht ausgelost.{% endif %}
     </p>
     <div class="d-flex flex-wrap gap-2 align-items-center">
         {% include 'ags/partials/workflow_toggle.html' with name='anmeldung_offen' offen=config.anmeldung_offen label='Anmeldung für Schüler' %}
         <form method="post" action="{% url 'run_lottery_internal' %}" class="m-0">
             {% csrf_token %}
-            <button type="submit" class="btn btn-brand-primary btn-sm" {% if lottery_blocked %}disabled title="{{ lottery_blocked }}"{% endif %}
+            <button type="submit" class="btn btn-brand-primary btn-sm" {% if phase.auslosen_gesperrt %}disabled title="{{ phase.auslosen_gesperrt }}"{% endif %}
                 onclick="return confirm('Losverfahren jetzt starten? Bisherige Zuteilungen werden überschrieben.')">Auslosung starten</button>
         </form>
         <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0">
             {% csrf_token %}
             <input type="hidden" name="target" value="leader_preview">
-            <button type="submit" class="btn btn-outline-light btn-sm" {% if not lottery_done %}disabled title="Erst auslosen"{% endif %}
+            <button type="submit" class="btn btn-outline-light btn-sm" {% if not phase.ausgelost %}disabled title="Erst auslosen"{% endif %}
                 onclick="return confirm('Vorläufige Teilnehmerlisten an alle AG-Leiter senden? (nur noch nicht versendete)')">
                 Vorläufige Listen an AG-Leiter ({{ preview_sent_count }}/{{ ag_approved_count }})
             </button>
@@ -57,7 +57,7 @@
         <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0">
             {% csrf_token %}
             <input type="hidden" name="target" value="leaders">
-            <button type="submit" class="btn btn-outline-light btn-sm" {% if not lottery_done %}disabled title="Erst auslosen"{% endif %}
+            <button type="submit" class="btn btn-outline-light btn-sm" {% if not phase.ausgelost %}disabled title="Erst auslosen"{% endif %}
                 onclick="return confirm('Finale Teilnehmerlisten an alle AG-Leiter senden?')">
                 Mail an AG-Leiter ({{ leader_sent_count }}/{{ ag_approved_count }})
             </button>
@@ -65,7 +65,7 @@
         <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0">
             {% csrf_token %}
             <input type="hidden" name="target" value="students">
-            <button type="submit" class="btn btn-outline-light btn-sm" {% if not lottery_done %}disabled title="Erst auslosen"{% endif %}
+            <button type="submit" class="btn btn-outline-light btn-sm" {% if not phase.ausgelost %}disabled title="Erst auslosen"{% endif %}
                 onclick="return confirm('Zuteilungen an alle Teilnehmer senden?')">
                 Mail an Teilnehmer ({{ acceptance_sent_count }}/{{ zugeteilte_count }})
             </button>

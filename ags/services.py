@@ -2,6 +2,7 @@ import logging
 
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Min, Max, Q
+from . import halbjahr
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig, max_ag_wahlen
 
 logger = logging.getLogger(__name__)
@@ -155,16 +156,6 @@ def get_students_with_stats(search_query=None, min_ag_filter=None, sort_by='name
     return students
 
 
-def leader_preview_blocked_reason(ag=None):
-    """Grund, warum keine vorläufige Liste verschickt werden darf, sonst None."""
-    if (Anmeldung.objects.filter(status=Anmeldung.Status.PENDING).exists()
-            or not Anmeldung.objects.filter(status=Anmeldung.Status.ACCEPTED).exists()):
-        return "Vorläufige Listen gibt es erst nach der Auslosung."
-    if ag is not None and ag.leader_email_sent:
-        return f"Für {ag.name} wurde die endgültige Liste bereits verschickt."
-    return None
-
-
 WORKFLOW_SCHALTER = ('ag_registrierung_offen', 'anmeldung_offen')
 
 
@@ -179,12 +170,11 @@ def get_workflow_status():
         'ag_approved_count': approved.count(),
         'schueler_count': SchuelerProfile.objects.count(),
         'anmeldung_count': Anmeldung.objects.count(),
-        'lottery_done': Anmeldung.objects.exclude(status=Anmeldung.Status.PENDING).exists(),
         'preview_sent_count': approved.filter(leader_preview_sent=True).count(),
         'leader_sent_count': approved.filter(leader_email_sent=True).count(),
         'zugeteilte_count': zugeteilte.count(),
         'acceptance_sent_count': zugeteilte.filter(acceptance_email_sent=True).count(),
-        'lottery_blocked': lottery_blocked_reason(),
+        'phase': halbjahr.phase(),
     }
 
 
@@ -197,35 +187,6 @@ def set_workflow_schalter(name, offen):
     AppConfig.objects.filter(pk=config.pk).update(**{name: offen})
     config.refresh_from_db()
     return config
-
-
-def lottery_blocked_reason():
-    """Gibt einen Grund zurück, warum die Auslosung gerade nicht laufen darf, sonst None."""
-    if AppConfig.load().anmeldung_offen:
-        return "Die Anmeldung ist noch offen. Bitte zuerst die Anmeldung schließen, dann auslosen."
-    # Eine neue Zuteilung würde nie verschickt (nur ungesendete Mails gehen raus), Eltern behielten die alte.
-    if (AG.objects.filter(leader_email_sent=True).exists()
-            or SchuelerProfile.objects.filter(acceptance_email_sent=True).exists()):
-        return ("Die endgültigen Mails wurden bereits verschickt. Eine neue Auslosung würde die verschickten "
-                "Zuteilungen ungültig machen; Änderungen bitte über die manuelle Korrektur.")
-    return None
-
-
-def start_new_semester():
-    """
-    Archiviert das Halbjahr und setzt das System zurück (wie `make next-semester`), in einer Transaktion:
-    Bricht der Request ab, bleibt kein halb gelöschter Zustand. Die Sperre auf AppConfig serialisiert
-    Doppelklicks; der zweite Lauf findet dann nichts mehr zum Archivieren. Die Ausgabe des Commands
-    (inkl. JSON-Dump mit personenbezogenen Daten) landet bewusst nicht im Log.
-    """
-    import io
-    from django.core.management import call_command
-    from django.db import transaction
-
-    AppConfig.load()
-    with transaction.atomic():
-        AppConfig.objects.select_for_update().get(pk=1)
-        call_command('next_semester', stdout=io.StringIO())
 
 
 def ensure_leader_user(ag):

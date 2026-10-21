@@ -18,9 +18,8 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from sesame.utils import get_query_string
 from .forms import AGProposalForm, AGEditForm, SchuelerFirstStepForm, LoginForm
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig, max_ag_wahlen
-from .utils import run_lottery
 from .emails import BCC_ADRESSE
-from . import services
+from . import halbjahr, services
 
 logger = logging.getLogger(__name__)
 
@@ -216,11 +215,11 @@ def _zurueck_zum_dashboard(request: HttpRequest) -> HttpResponse:
 @require_POST
 @user_passes_test(lambda u: u.is_staff)
 def run_lottery_view(request: HttpRequest) -> HttpResponse:
-    blocked = services.lottery_blocked_reason()
-    if blocked:
-        messages.error(request, blocked)
+    try:
+        halbjahr.auslosen()
+    except halbjahr.Gesperrt as e:
+        messages.error(request, str(e))
     else:
-        run_lottery()
         messages.success(request, "Das Losverfahren wurde erfolgreich durchgeführt.")
     return _zurueck_zum_dashboard(request)
 
@@ -243,11 +242,12 @@ def workflow_toggle(request: HttpRequest) -> HttpResponse:
 @require_POST
 @user_passes_test(lambda u: u.is_staff)
 def workflow_next_semester(request: HttpRequest) -> HttpResponse:
-    if request.POST.get('bestaetigung') != 'NEUES HALBJAHR':
-        messages.error(request, "Bitte zur Bestätigung NEUES HALBJAHR eingeben.")
-        return _zurueck_zum_dashboard(request)
-    services.start_new_semester()
-    messages.success(request, "Das Halbjahr wurde archiviert und das System für die neue Runde zurückgesetzt.")
+    try:
+        halbjahr.neues_halbjahr(request.POST.get('bestaetigung'))
+    except halbjahr.Gesperrt as e:
+        messages.error(request, str(e))
+    else:
+        messages.success(request, "Das Halbjahr wurde archiviert und das System für die neue Runde zurückgesetzt.")
     return _zurueck_zum_dashboard(request)
 
 @user_passes_test(lambda u: u.is_staff)
@@ -340,7 +340,7 @@ def resend_leader_email(request: HttpRequest) -> HttpResponse:
         try:
             ag = AG.objects.get(id=ag_id)
             if request.POST.get('kind') == 'preview':
-                sperrgrund = services.leader_preview_blocked_reason(ag)
+                sperrgrund = halbjahr.phase().vorschau_gesperrt_fuer(ag)
                 if sperrgrund:
                     messages.error(request, sperrgrund)
                 else:
@@ -477,7 +477,7 @@ def send_bulk_emails_view(request: HttpRequest) -> HttpResponse:
             send_allocation_emails_task.enqueue(only_unsent=True, send_students=False, send_leaders=True)
             messages.success(request, VERSAND_GESTARTET)
         elif target == 'leader_preview':
-            sperrgrund = services.leader_preview_blocked_reason()
+            sperrgrund = halbjahr.phase().vorschau_gesperrt
             if sperrgrund:
                 messages.error(request, sperrgrund)
             else:
