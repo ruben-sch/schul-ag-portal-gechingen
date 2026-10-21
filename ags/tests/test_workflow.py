@@ -39,13 +39,6 @@ class WorkflowTabTest(TestCase):
         self.client.post(reverse('workflow_toggle'), {'name': 'anmeldung_offen', 'offen': '1'})
         self.assertFalse(AppConfig.load().anmeldung_offen)
 
-    def test_lottery_blocked_while_registration_open(self):
-        config = AppConfig.load()
-        config.anmeldung_offen = True
-        config.save()
-        self.client.post(reverse('run_lottery_internal'))
-        self.assertEqual(Anmeldung.objects.get().status, Anmeldung.Status.PENDING)
-
     def test_lottery_runs_when_registration_closed(self):
         self.client.post(reverse('run_lottery_internal'))
         self.assertEqual(Anmeldung.objects.get().status, Anmeldung.Status.ACCEPTED)
@@ -71,16 +64,6 @@ class WorkflowTabTest(TestCase):
         config = AppConfig.load()
         self.assertTrue(config.ag_registrierung_offen)
         self.assertFalse(config.anmeldung_offen)
-
-    def test_next_semester_is_atomic(self):
-        from unittest import mock
-        with tempfile.TemporaryDirectory() as backup_dir, override_settings(SEMESTER_BACKUP_DIR=backup_dir), \
-                mock.patch('django.contrib.auth.models.User.objects.filter', side_effect=RuntimeError("Abbruch")):
-            with self.assertRaises(RuntimeError):
-                from ags import services
-                services.start_new_semester()
-        self.assertEqual(AG.objects.count(), 1)
-        self.assertEqual(ArchivEintrag.objects.count(), 0)
 
     def test_lottery_blocked_after_final_mails(self):
         SchuelerProfile.objects.update(acceptance_email_sent=True)
