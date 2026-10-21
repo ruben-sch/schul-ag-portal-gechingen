@@ -65,6 +65,7 @@ The AG-Verwaltungsportal Schlehengäuschule Gechingen is a web platform for mana
 - [`ags/tasks.py`](ags/tasks.py): Background tasks (email sending) processed by the `worker` container.
 - [`ags/tests/`](ags/tests): Unit and integration test suite (`test_models.py`, `test_views.py`, `test_lottery.py`, `test_emails.py`).
 - [`docker-compose.yml`](docker-compose.yml) & [`Makefile`](Makefile): Local containerization and shortcut command runner.
+- [`docs/admin-workflow.md`](docs/admin-workflow.md): German admin handbook for the semester workflow; update it when admin features change.
 - [`docs/adr/`](docs/adr): Architecture Decision Records (`001-bootstrap-investigation.md`, `002-staging-environment.md`).
 - [`.github/workflows/test.yml`](.github/workflows/test.yml): CI linting (Flake8), security audit (Bandit), and test pipeline.
 
