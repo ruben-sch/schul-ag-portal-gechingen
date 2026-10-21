@@ -141,6 +141,10 @@ EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=20)
 # Grundwartezeit in Sekunden zwischen Versuchen bei vorübergehenden Versandfehlern (verdoppelt sich je Versuch).
 EMAIL_RETRY_DELAY = env.float("EMAIL_RETRY_DELAY", default=5)
 
+# Erinnerungsmail an Teilnehmer: so viele Tage vor dem AG-Termin, frühestens ab dieser Uhrzeit (Stunde, lokal).
+REMINDER_DAYS_BEFORE = env.int("REMINDER_DAYS_BEFORE", default=2)
+REMINDER_EARLIEST_HOUR = env.int("REMINDER_EARLIEST_HOUR", default=8)
+
 # Hintergrund-Aufgaben (E-Mail-Versand). Der Worker läuft mit `python manage.py db_worker`.
 TASKS = {
     "default": {

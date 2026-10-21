@@ -42,7 +42,10 @@ services:
   worker:
     build: .
     # Arbeitet Hintergrund-Aufgaben (E-Mail-Versand) ab; --reload startet bei Code-Änderungen neu.
-    command: python manage.py db_worker --reload
+    # Daneben stündlich Termin-Erinnerungen verschicken (idempotent, siehe send_reminders).
+    command: >
+      sh -c "while true; do python manage.py send_reminders; sleep 3600; done &
+             exec python manage.py db_worker --reload"
     volumes:
       - .:/app
     environment:
