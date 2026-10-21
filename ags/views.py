@@ -8,7 +8,7 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import TemplateView, CreateView, FormView
 from django.conf import settings
 from datetime import datetime
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 import csv
 from django.db.models import Count, Sum, Min, Max, Q
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -16,9 +16,13 @@ from sesame.utils import get_query_string
 from .forms import AGProposalForm, SchuelerFirstStepForm, LoginForm
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig
 from .utils import run_lottery
+from .emails import BCC_ADRESSE
 from . import services
 
 logger = logging.getLogger(__name__)
+
+VERSAND_GESTARTET = ("Der E-Mail-Versand läuft im Hintergrund. "
+                     "Lade die Seite in einigen Minuten neu, um den Gesendet-Status zu sehen.")
 
 class LandingView(TemplateView):
     template_name = 'ags/landing.html'
@@ -168,30 +172,16 @@ def run_lottery_view(request):
     return redirect('stats_dashboard')
 
 @user_passes_test(lambda u: u.is_staff)
-def manual_intervention(request):
+def manual_intervention(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         action = request.POST.get('action')
         anm_id = request.POST.get('anmeldung_id')
         
         try:
             if action == 'send_all_unsent':
-                from .emails import send_allocation_emails
-                results = send_allocation_emails(only_unsent=True)
-                s_sent = results['students_sent']
-                s_fail = results['students_failed']
-                l_sent = results['leaders_sent']
-                l_fail = results['leaders_failed']
-                msg = f"Versand abgeschlossen: {s_sent} Schüler-Mails gesendet"
-                if s_fail:
-                    msg += f", {s_fail} fehlgeschlagen"
-                msg += f". {l_sent} AG-Leiter-Mails gesendet"
-                if l_fail:
-                    msg += f", {l_fail} fehlgeschlagen"
-                msg += "."
-                if s_fail or l_fail:
-                    messages.warning(request, msg)
-                else:
-                    messages.success(request, msg)
+                from .tasks import send_allocation_emails_task
+                send_allocation_emails_task.enqueue(only_unsent=True)
+                messages.success(request, VERSAND_GESTARTET)
             else:
                 anm = Anmeldung.objects.get(id=anm_id)
                 if action == 'toggle_status':
@@ -237,7 +227,7 @@ def manual_intervention(request):
     })
 
 @user_passes_test(lambda u: u.is_staff)
-def resend_email(request):
+def resend_email(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         student_id = request.POST.get('student_id')
         email_type = request.POST.get('email_type')
@@ -245,34 +235,16 @@ def resend_email(request):
         try:
             profile = SchuelerProfile.objects.get(id=student_id)
             if email_type == 'confirmation':
-                from django.template.loader import render_to_string
-                from django.utils.html import strip_tags
-                anmeldungen = list(Anmeldung.objects.filter(schueler=profile).order_by('prio'))
-                if anmeldungen:
-                    context = {'schueler': profile, 'anmeldungen': anmeldungen}
-                    html_message = render_to_string('ags/emails/registration_confirmation.html', context)
-                    plain_message = strip_tags(html_message)
-                    msg = EmailMultiAlternatives(
-                        subject="Deine Schul-AG Anmeldung",
-                        body=plain_message,
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        to=[profile.user.email],
-                        bcc=['eltern-ags-sgs@googlegroups.com']
-                    )
-                    msg.attach_alternative(html_message, "text/html")
-                    msg.send()
-                    profile.confirmation_email_sent = True
-                    profile.save()
-                    messages.success(request, f"Anmeldebestätigung an {profile.user.email} gesendet.")
+                if profile.anmeldungen.exists():
+                    from .tasks import send_registration_confirmation_task
+                    send_registration_confirmation_task.enqueue(profile.id)
+                    messages.success(request, f"Anmeldebestätigung an {profile.user.email} wird versendet.")
                 else:
-                    messages.warning(request, f"Schüler hat keine Anmeldungen.")
+                    messages.warning(request, "Schüler hat keine Anmeldungen.")
             elif email_type == 'acceptance':
-                from .emails import send_single_acceptance_email
-                success = send_single_acceptance_email(profile)
-                if success:
-                    messages.success(request, f"Zuteilungsmail an {profile.user.email} gesendet.")
-                else:
-                    messages.error(request, f"Fehler beim Senden der Zuteilungsmail an {profile.user.email}.")
+                from .tasks import send_acceptance_email_task
+                send_acceptance_email_task.enqueue(profile.id)
+                messages.success(request, f"Zuteilungsmail an {profile.user.email} wird versendet.")
         except SchuelerProfile.DoesNotExist:
             messages.error(request, "Schüler nicht gefunden.")
         except Exception as e:
@@ -282,17 +254,14 @@ def resend_email(request):
     return redirect('manual_intervention')
 
 @user_passes_test(lambda u: u.is_staff)
-def resend_leader_email(request):
+def resend_leader_email(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         ag_id = request.POST.get('ag_id')
         try:
             ag = AG.objects.get(id=ag_id)
-            from .emails import send_single_leader_email
-            success = send_single_leader_email(ag)
-            if success:
-                messages.success(request, f"E-Mail für AG-Leitung ({ag.verantwortlicher_email}) erfolgreich gesendet.")
-            else:
-                messages.error(request, f"Fehler beim Senden der E-Mail für AG '{ag.name}' (ggf. keine Teilnehmer).")
+            from .tasks import send_leader_email_task
+            send_leader_email_task.enqueue(ag.id)
+            messages.success(request, f"E-Mail für AG-Leitung ({ag.verantwortlicher_email}) wird versendet.")
         except AG.DoesNotExist:
             messages.error(request, "AG nicht gefunden.")
         except Exception as e:
@@ -312,7 +281,7 @@ def stats_export(request):
     })
 
 @user_passes_test(lambda u: u.is_staff)
-def test_email(request):
+def test_email(request: HttpRequest) -> HttpResponse:
     try:
         user_email = request.user.email
         if not user_email:
@@ -324,7 +293,7 @@ def test_email(request):
             body=f'Hallo {request.user.first_name},\n\ndies ist eine Test-E-Mail aus dem AG-Portal. Wenn diese Nachricht ankommt, ist der E-Mail-Versand korrekt konfiguriert.\n\nViele Grüße,\nDein AG-Portal System',
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[user_email],
-            bcc=['eltern-ags-sgs@googlegroups.com']
+            bcc=[BCC_ADRESSE]
         )
         msg.send(fail_silently=False)
         messages.success(request, f"Test-E-Mail wurde erfolgreich an {user_email} (oder an die Konsole) versendet.")
@@ -407,34 +376,18 @@ def export_ags_csv(request):
     return response
 
 @user_passes_test(lambda u: u.is_staff)
-def send_bulk_emails_view(request):
+def send_bulk_emails_view(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
         target = request.POST.get('target')
-        from .emails import send_allocation_emails
-        
+        from .tasks import send_allocation_emails_task
+
         if target == 'students':
-            results = send_allocation_emails(only_unsent=True, send_students=True, send_leaders=False)
-            s_sent = results.get('students_sent', 0)
-            s_fail = results.get('students_failed', 0)
-            msg = f"{s_sent} Schüler-Mails erfolgreich gesendet."
-            if s_fail > 0:
-                msg += f" {s_fail} Schüler-Mails konnten nicht gesendet werden."
-                messages.warning(request, msg)
-            else:
-                messages.success(request, msg)
-                
+            send_allocation_emails_task.enqueue(only_unsent=True, send_students=True, send_leaders=False)
+            messages.success(request, VERSAND_GESTARTET)
         elif target == 'leaders':
-            results = send_allocation_emails(only_unsent=True, send_students=False, send_leaders=True)
-            l_sent = results.get('leaders_sent', 0)
-            l_fail = results.get('leaders_failed', 0)
-            msg = f"{l_sent} AG-Leiter-Mails erfolgreich gesendet."
-            if l_fail > 0:
-                msg += f" {l_fail} AG-Leiter-Mails konnten nicht gesendet werden."
-                messages.warning(request, msg)
-            else:
-                messages.success(request, msg)
-                
+            send_allocation_emails_task.enqueue(only_unsent=True, send_students=False, send_leaders=True)
+            messages.success(request, VERSAND_GESTARTET)
         else:
             messages.error(request, "Ungültiges Zielfeld für den E-Mail-Versand.")
-            
+
     return redirect(reverse('stats_dashboard') + '?tab=general')

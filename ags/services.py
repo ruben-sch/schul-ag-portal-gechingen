@@ -1,10 +1,10 @@
+import logging
+
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Min, Max, Q
-from django.core.mail import EmailMultiAlternatives
-from django.template.loader import render_to_string
-from django.utils.html import strip_tags
-from django.conf import settings
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig
+
+logger = logging.getLogger(__name__)
 
 def get_available_ags_for_student(klassenstufe):
     """Returns AGs suitable for a specific grade level."""
@@ -41,38 +41,28 @@ def update_student_registrations(student_profile, ag_ids):
     
     with transaction.atomic():
         Anmeldung.objects.filter(schueler=student_profile).delete()
-        saved_anmeldungen = []
         for i, ag_id in enumerate(valid_selections):
             ag = AG.objects.get(id=ag_id)
-            anm = Anmeldung.objects.create(schueler=student_profile, ag=ag, prio=i+1)
-            saved_anmeldungen.append(anm)
-        
-    try:
-        context = {
-            'schueler': student_profile,
-            'anmeldungen': saved_anmeldungen,
-        }
-        html_message = render_to_string('ags/emails/registration_confirmation.html', context)
-        plain_message = strip_tags(html_message)
-        msg = EmailMultiAlternatives(
-            subject="Deine Schul-AG Anmeldung",
-            body=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[student_profile.user.email],
-            bcc=['eltern-ags-sgs@googlegroups.com']
-        )
-        msg.attach_alternative(html_message, "text/html")
-        msg.send()
-        student_profile.confirmation_email_sent = True
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning("Could not send confirmation email: %s", e)
+            Anmeldung.objects.create(schueler=student_profile, ag=ag, prio=i+1)
         student_profile.confirmation_email_sent = False
-        
-    student_profile.acceptance_email_sent = False
-    student_profile.save()
-    
+        student_profile.acceptance_email_sent = False
+        student_profile.save(update_fields=['confirmation_email_sent', 'acceptance_email_sent'])
+        # Erst nach dem Commit einreihen, damit der Worker die gespeicherte Anmeldung sieht.
+        transaction.on_commit(lambda: _bestaetigung_einreihen(student_profile.id))
+
     return len(valid_selections) == len(ag_ids)
+
+
+def _bestaetigung_einreihen(schueler_id):
+    """
+    Reiht die Anmeldebestätigung im Hintergrund ein. Scheitert das Einreihen, bleibt die Anmeldung
+    gültig; confirmation_email_sent bleibt False, sodass der Admin die Bestätigung nachsenden kann.
+    """
+    from .tasks import send_registration_confirmation_task
+    try:
+        send_registration_confirmation_task.enqueue(schueler_id)
+    except Exception:
+        logger.exception("Anmeldebestätigung für Schüler %s konnte nicht eingereiht werden.", schueler_id)
 
 def get_student_dashboard_data(user):
     """Returns all registrations for student profiles linked to a user."""

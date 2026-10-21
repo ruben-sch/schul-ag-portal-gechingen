@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "sesame",
+    "django_tasks_db",
     "ags",
     "crispy_forms",
     "crispy_bootstrap5",
@@ -122,6 +123,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 import sys
 if 'test' in sys.argv:
     STATICFILES_STORAGE = "django.contrib.staticfiles.storage.StaticFilesStorage"
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -134,6 +136,21 @@ else:
 # Email settings
 vars().update(env.email_url())
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
+# Ohne Timeout blockiert ein hängender Mailserver den Prozess unbegrenzt.
+EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=20)
+# Grundwartezeit in Sekunden zwischen Versuchen bei vorübergehenden Versandfehlern (verdoppelt sich je Versuch).
+EMAIL_RETRY_DELAY = env.float("EMAIL_RETRY_DELAY", default=5)
+
+# Hintergrund-Aufgaben (E-Mail-Versand). Der Worker läuft mit `python manage.py db_worker`.
+TASKS = {
+    "default": {
+        "BACKEND": env("TASKS_BACKEND", default="django_tasks_db.DatabaseBackend"),
+    }
+}
+if 'test' in sys.argv:
+    # Tests führen Aufgaben sofort im selben Prozess aus und warten nicht zwischen Versuchen.
+    TASKS = {"default": {"BACKEND": "django.tasks.backends.immediate.ImmediateBackend"}}
+    EMAIL_RETRY_DELAY = 0
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

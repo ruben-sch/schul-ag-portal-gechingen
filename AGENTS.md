@@ -4,7 +4,7 @@
 The AG-Verwaltungsportal Schlehengäuschule Gechingen is a web platform for managing, registering, and automatically allocating school extracurricular activities (AGs) using an automated fair lottery algorithm. It provides dedicated interfaces for parents, activity leaders, and school administrators, authenticated via passwordless magic links. The core stack comprises Python 3.14 (Django 6 needs 3.12+), Django 6.1+, PostgreSQL 15, Gunicorn, WhiteNoise, and Traefik, containerized with Docker Compose.
 
 ## Critical Setup & Execution Commands
-- **Run commands in the dev container**, not the local `.venv` (it is Python 3.9 and cannot install Django 6; CI and the image use 3.14): `docker compose exec web python manage.py <cmd>`. Start the stack with `make up` (web, postgres, traefik, mailpit) if it isn't running.
+- **Run commands in the dev container**, not the local `.venv` (it is Python 3.9 and cannot install Django 6; CI and the image use 3.14): `docker compose exec web python manage.py <cmd>`. Start the stack with `make up` (web, worker, postgres, traefik, mailpit) if it isn't running.
   - The container bind-mounts the repo and runs `runserver`, so code edits live-reload. Re-run `make up` only after changing `requirements.txt` or the `Dockerfile`.
 - **Database Migrations**:
   - Make migrations: `docker compose exec web python manage.py makemigrations`
@@ -25,7 +25,8 @@ The AG-Verwaltungsportal Schlehengäuschule Gechingen is a web platform for mana
 ## Django & Python Style Rules
 - **Framework Context**: Codebase is implemented in Django 6.1+ (MVT architecture with `ags/` app and `config/` project core); adhere to Django/Python architectural standards.
 - **Route & View Design**: Keep request handlers modular in `ags/views.py` and register routes explicitly in `ags/urls.py`. Type-hint new or touched view signatures and response helpers (`django.http.HttpRequest`, `django.http.HttpResponse`).
-- **Separation of Concerns**: Do not place business logic in views. Keep the lottery in `ags/utils.py`, other business logic in `ags/services.py`, email notifications in `ags/emails.py`, and forms in `ags/forms.py`.
+- **Separation of Concerns**: Do not place business logic in views. Keep the lottery in `ags/utils.py`, other business logic in `ags/services.py`, email notifications in `ags/emails.py`, background tasks in `ags/tasks.py`, and forms in `ags/forms.py`.
+- **Background Tasks**: Never send email synchronously from a view or admin action; enqueue a task from `ags/tasks.py` (Django Tasks, `django-tasks-db` backend). Exception: the admin SMTP test (`test_email`) sends directly, because its point is the immediate result. Tasks raise on failed mails so they show as FAILED in the admin. The `worker` container runs `manage.py db_worker`; tests use the immediate backend.
 - **Model Integrity**: Define business validation in model `clean()` methods (e.g., student grade constraints) and invoke `full_clean()` in `save()` (currently only `Anmeldung` does; follow that pattern for new validation).
 - **Configuration Management**: Access environment variables strictly via `environ.Env` in `config/settings.py`. Never read `os.environ` directly in application logic.
 - **Code Quality**: Adhere to PEP 8 with a maximum line length of 127 and max complexity of 10 as enforced by CI Flake8 checks.
@@ -60,7 +61,8 @@ The AG-Verwaltungsportal Schlehengäuschule Gechingen is a web platform for mana
 - [`ags/views.py`](ags/views.py): HTTP request handlers and dashboard controllers.
 - [`ags/services.py`](ags/services.py): Core business logic (registration, dashboards, stats).
 - [`ags/utils.py`](ags/utils.py): Two-phase lottery allocation (`run_lottery`, `reset_lottery`).
-- [`ags/emails.py`](ags/emails.py): Email generation and dispatch via magic links.
+- [`ags/emails.py`](ags/emails.py): Email generation and dispatch via magic links (retry on transient SMTP errors).
+- [`ags/tasks.py`](ags/tasks.py): Background tasks (email sending) processed by the `worker` container.
 - [`ags/tests/`](ags/tests): Unit and integration test suite (`test_models.py`, `test_views.py`, `test_lottery.py`, `test_emails.py`).
 - [`docker-compose.yml`](docker-compose.yml) & [`Makefile`](Makefile): Local containerization and shortcut command runner.
 - [`docs/adr/`](docs/adr): Architecture Decision Records (`001-bootstrap-investigation.md`, `002-staging-environment.md`).

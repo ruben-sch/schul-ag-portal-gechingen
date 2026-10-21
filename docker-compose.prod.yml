@@ -1,5 +1,26 @@
 version: '3.8'
 
+# Gemeinsame Umgebung für Web und Worker, damit eine neue Variable beide erreicht.
+x-app-env-prod: &app-env-prod
+  DATABASE_URL: "postgres://${POSTGRES_USER:-ag_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-ag_portal}"
+  SECRET_KEY: "${SECRET_KEY}"
+  DEBUG: "False"
+  EMAIL_URL: "smtp+tls://${SMTP_USER}:${SMTP_PASSWORD}@${SMTP_HOST}:${SMTP_PORT:-587}"
+  DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL}"
+
+x-app-env-staging: &app-env-staging
+  DATABASE_URL: "postgres://${POSTGRES_USER:-ag_user}:${POSTGRES_PASSWORD}@db-staging:5432/${POSTGRES_DB:-ag_portal}"
+  SECRET_KEY: "${SECRET_KEY}"
+  DEBUG: "False"
+  EMAIL_URL: "smtp+tls://${SMTP_USER}:${SMTP_PASSWORD}@${SMTP_HOST}:${SMTP_PORT:-587}"
+  DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL}"
+
+x-logging: &logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: postgres:15
@@ -25,20 +46,16 @@ services:
     image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:latest
     command: >
       sh -c "python manage.py migrate --noinput &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 4 --timeout 60"
     expose:
       - "8000"
     networks:
       - default
       - proxy
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-ag_user}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-ag_portal}
-      - SECRET_KEY=${SECRET_KEY}
-      - DEBUG=False
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-schul-ag.schwarzpost.de,localhost,127.0.0.1}
-      - EMAIL_URL=smtp+tls://${SMTP_USER}:${SMTP_PASSWORD}@${SMTP_HOST}:${SMTP_PORT:-587}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
-      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
+      <<: *app-env-prod
+      ALLOWED_HOSTS: "${ALLOWED_HOSTS:-schul-ag.schwarzpost.de,localhost,127.0.0.1}"
+      CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS}"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ag-portal.rule=Host(`schul-ag.schwarzpost.de`)"
@@ -48,11 +65,22 @@ services:
       db:
         condition: service_healthy
     restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *logging
+
+  worker:
+    image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:latest
+    # Arbeitet Hintergrund-Aufgaben (E-Mail-Versand) ab; Migrationen führt der Web-Container aus.
+    command: python manage.py db_worker
+    # SIGTERM lässt den Worker das laufende Mail-Paket noch fertig senden.
+    stop_grace_period: 2m
+    environment: *app-env-prod
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    restart: always
+    logging: *logging
 
   db-staging:
     image: postgres:15
@@ -78,20 +106,16 @@ services:
     image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:staging
     command: >
       sh -c "python manage.py migrate --noinput &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 4 --timeout 60"
     expose:
       - "8000"
     networks:
       - default
       - proxy
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER:-ag_user}:${POSTGRES_PASSWORD}@db-staging:5432/${POSTGRES_DB:-ag_portal}
-      - SECRET_KEY=${SECRET_KEY}
-      - DEBUG=False
-      - ALLOWED_HOSTS=staging.schul-ag.schwarzpost.de,localhost,127.0.0.1
-      - EMAIL_URL=smtp+tls://${SMTP_USER}:${SMTP_PASSWORD}@${SMTP_HOST}:${SMTP_PORT:-587}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL}
-      - CSRF_TRUSTED_ORIGINS=https://staging.schul-ag.schwarzpost.de
+      <<: *app-env-staging
+      ALLOWED_HOSTS: "staging.schul-ag.schwarzpost.de,localhost,127.0.0.1"
+      CSRF_TRUSTED_ORIGINS: "https://staging.schul-ag.schwarzpost.de"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.staging-portal.rule=Host(`staging.schul-ag.schwarzpost.de`)"
@@ -102,11 +126,22 @@ services:
       db-staging:
         condition: service_healthy
     restart: always
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    logging: *logging
+
+  worker-staging:
+    image: ghcr.io/ruben-sch/schul-ag-portal-gechingen:staging
+    # Arbeitet Hintergrund-Aufgaben (E-Mail-Versand) ab; Migrationen führt der Web-Container aus.
+    command: python manage.py db_worker
+    # SIGTERM lässt den Worker das laufende Mail-Paket noch fertig senden.
+    stop_grace_period: 2m
+    environment: *app-env-staging
+    depends_on:
+      db-staging:
+        condition: service_healthy
+      web-staging:
+        condition: service_started
+    restart: always
+    logging: *logging
 
 volumes:
   postgres_data_prod:

@@ -12,7 +12,7 @@ class ArchivEintragAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         return False # Nur via System-Reset
 from .utils import run_lottery, reset_lottery
-from .emails import send_allocation_emails
+from .tasks import send_allocation_emails_task
 
 @admin.action(description='Ausgewählte AGs genehmigen')
 def make_approved(modeladmin, request, queryset):
@@ -37,8 +37,9 @@ def start_next_semester(modeladmin, request, queryset):
 
 @admin.action(description='Ergebnisse per E-Mail versenden')
 def trigger_emails(modeladmin, request, queryset):
-    send_allocation_emails()
-    modeladmin.message_user(request, "Benachrichtigungen wurden versendet.")
+    # Im Hintergrund, sonst läuft der Request bei vielen Mails in den Gunicorn-Timeout.
+    send_allocation_emails_task.enqueue(only_unsent=False)
+    modeladmin.message_user(request, "Der Versand aller Benachrichtigungen läuft im Hintergrund.")
 
 @admin.register(AG)
 class AGAdmin(admin.ModelAdmin):

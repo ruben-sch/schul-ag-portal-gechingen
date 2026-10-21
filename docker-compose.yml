@@ -39,6 +39,25 @@ services:
       db:
         condition: service_healthy
 
+  worker:
+    build: .
+    # Arbeitet Hintergrund-Aufgaben (E-Mail-Versand) ab; --reload startet bei Code-Änderungen neu.
+    command: python manage.py db_worker --reload
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=1
+      - DATABASE_URL=postgres://ag_user:ag_password@db:5432/ag_portal
+      - SECRET_KEY=django-insecure-development-key
+      - EMAIL_URL=smtp://mailpit:1025
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-webmaster@localhost}
+    depends_on:
+      db:
+        condition: service_healthy
+      web:
+        condition: service_started
+    restart: unless-stopped
+
   traefik:
     image: traefik:v2.11
     environment:
