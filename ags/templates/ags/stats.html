@@ -152,6 +152,12 @@
                             </form>
                             </div>
                         </div>
+                        <div class="small text-secondary mb-3">
+                            <div><i class="bi bi-person-fill me-1"></i><span class="text-light">{{ ag.verantwortlicher_name }}</span>
+                                · <a href="mailto:{{ ag.verantwortlicher_email }}" class="text-secondary">{{ ag.verantwortlicher_email }}</a>{% if ag.verantwortlicher_telefon %} · {{ ag.verantwortlicher_telefon }}{% endif %}</div>
+                            <div><i class="bi bi-calendar-event me-1"></i>{{ ag.get_termine_display }}</div>
+                            {% if ag.ort %}<div><i class="bi bi-geo-alt-fill me-1"></i>{{ ag.ort }}</div>{% endif %}
+                        </div>
                         <div class="small">
                             <div class="text-success fw-bold mb-2">Zugelassen:</div>
                             <ul class="list-unstyled ps-3 mb-4 border-start border-success border-opacity-25">
