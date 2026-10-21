@@ -224,16 +224,6 @@ class EmailTaskTest(TestCase):
         self.assertEqual(paket.status, TaskResultStatus.FAILED)
         self.assertIn("EmailVersandFehler", einzel.errors[0].exception_class_path)
 
-    def test_admin_action_enqueues_instead_of_sending(self):
-        from unittest import mock
-        from ags import admin as ags_admin
-        modeladmin = mock.MagicMock()
-        mail.outbox = []
-        with mock.patch('ags.admin.send_allocation_emails_task') as task:
-            ags_admin.trigger_emails(modeladmin, mock.MagicMock(), AG.objects.none())
-        task.enqueue.assert_called_once_with(only_unsent=False)
-        self.assertEqual(len(mail.outbox), 0)
-
     def test_enqueue_failure_keeps_registration(self):
         from unittest import mock
         from ags import services

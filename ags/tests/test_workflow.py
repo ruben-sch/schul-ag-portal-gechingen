@@ -120,3 +120,13 @@ class WorkflowTabTest(TestCase):
         AppConfig.objects.update(anmeldung_offen=True)
         res = self.client.get(reverse('stats_dashboard') + '?tab=general')
         self.assertContains(res, 'disabled title="Die Anmeldung ist noch offen.')
+
+    def test_django_admin_hat_keine_workflow_aktionen(self):
+        # Auslosen, Zurücksetzen, Versand und Halbjahreswechsel laufen nur über den Workflow-Tab mit seinen Sperren.
+        self.admin.is_superuser = True
+        self.admin.save()
+        for url in (reverse('admin:ags_ag_changelist'), reverse('admin:ags_appconfig_changelist')):
+            res = self.client.get(url)
+            self.assertEqual(res.status_code, 200)
+            for aktion in ('trigger_lottery', 'undo_lottery', 'trigger_emails', 'start_next_semester'):
+                self.assertNotContains(res, f'value="{aktion}"')
