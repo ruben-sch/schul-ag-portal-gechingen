@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 from smtplib import SMTPException
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.core.mail import EmailMultiAlternatives
@@ -169,6 +169,14 @@ def dashboard(request):
         'managed_ags': managed_ags,
         'is_parent': is_parent
     })
+
+@require_POST
+@user_passes_test(lambda u: u.is_staff)
+def duplicate_ag(request: HttpRequest, pk: int) -> HttpResponse:
+    kopie = services.duplicate_ag(get_object_or_404(AG, pk=pk))
+    messages.success(request, f"AG \"{kopie.name}\" wurde kopiert. Bitte jetzt die neuen Termine eintragen.")
+    return redirect('edit_ag', pk=kopie.pk)
+
 
 @user_passes_test(lambda u: u.is_staff)
 def stats_dashboard(request: HttpRequest) -> HttpResponse:

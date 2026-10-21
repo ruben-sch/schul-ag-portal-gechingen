@@ -5,6 +5,7 @@ urlpatterns = [
     path('', views.LandingView.as_view(), name='landing'),
     path('propose/', views.ProposeAGView.as_view(), name='propose_ag'),
     path('ag/<int:pk>/bearbeiten/', views.AGEditView.as_view(), name='edit_ag'),
+    path('ag/<int:pk>/duplizieren/', views.duplicate_ag, name='duplicate_ag'),
     path('register/', views.RegisterSchuelerStep1View.as_view(), name='register_schueler'),
     path('register/select/', views.select_ags, name='select_ags'),
     path('login/', views.RequestMagicLinkView.as_view(), name='login'),
