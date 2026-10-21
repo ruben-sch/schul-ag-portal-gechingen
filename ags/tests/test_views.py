@@ -229,28 +229,28 @@ class ViewTest(TestCase):
                 name=f"AG {i}", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4,
                 status=AG.Status.APPROVED, verantwortlicher_email=f"ag{i}@test.de"
             )
-            for i in range(1, 7)
+            for i in range(1, 6)
         ]
         # Step 1
         self.client.post(reverse('register_schueler'), {
-            'name': 'Max 6',
-            'email': 'max6@test.de',
+            'name': 'Max 5',
+            'email': 'max5@test.de',
             'klassenstufe': 4,
             'notfall_telefon': '12345'
         })
 
-        # Post 6 AGs (exceeds limit of 5)
+        # Post 5 AGs (exceeds limit of 4)
         res = self.client.post(reverse('select_ags'), {'ags': [ag.id for ag in ags]})
         self.assertEqual(res.status_code, 200)
-        self.assertContains(res, "Es dürfen maximal 5 AGs ausgewählt werden.")
-        self.assertEqual(Anmeldung.objects.filter(schueler__name='Max 6').count(), 0)
+        self.assertContains(res, "Es dürfen maximal 4 AGs ausgewählt werden.")
+        self.assertEqual(Anmeldung.objects.filter(schueler__name='Max 5').count(), 0)
 
-        # Post exactly 5 AGs (allowed)
-        res_ok = self.client.post(reverse('select_ags'), {'ags': [ag.id for ag in ags[:5]]})
+        # Post exactly 4 AGs (allowed)
+        res_ok = self.client.post(reverse('select_ags'), {'ags': [ag.id for ag in ags[:4]]})
         self.assertEqual(res_ok.status_code, 302)
-        anmeldungen = list(Anmeldung.objects.filter(schueler__name='Max 6').order_by('prio'))
-        self.assertEqual(len(anmeldungen), 5)
-        self.assertEqual([a.prio for a in anmeldungen], [1, 2, 3, 4, 5])
+        anmeldungen = list(Anmeldung.objects.filter(schueler__name='Max 5').order_by('prio'))
+        self.assertEqual(len(anmeldungen), 4)
+        self.assertEqual([a.prio for a in anmeldungen], [1, 2, 3, 4])
 
     def test_manual_intervention_prio_bounds(self):
         user = User.objects.create(username="admin_bounds@test.de", is_staff=True)
@@ -260,17 +260,7 @@ class ViewTest(TestCase):
         profile = SchuelerProfile.objects.create(user=student_user, name="Bound Student", klassenstufe=2)
         anm = Anmeldung.objects.create(schueler=profile, ag=self.ag1, status=Anmeldung.Status.ACCEPTED, prio=1)
 
-        # Attempting prio > 5 should be rejected
-        res = self.client.post(reverse('manual_intervention'), {
-            'action': 'update_prio',
-            'anmeldung_id': anm.id,
-            'prio': '6'
-        })
-        self.assertEqual(res.status_code, 302)
-        anm.refresh_from_db()
-        self.assertEqual(anm.prio, 1)
-
-        # Prio 5 should succeed
+        # Attempting prio > 4 should be rejected
         res = self.client.post(reverse('manual_intervention'), {
             'action': 'update_prio',
             'anmeldung_id': anm.id,
@@ -278,7 +268,74 @@ class ViewTest(TestCase):
         })
         self.assertEqual(res.status_code, 302)
         anm.refresh_from_db()
+        self.assertEqual(anm.prio, 1)
+
+        # Prio 4 should succeed
+        res = self.client.post(reverse('manual_intervention'), {
+            'action': 'update_prio',
+            'anmeldung_id': anm.id,
+            'prio': '4'
+        })
+        self.assertEqual(res.status_code, 302)
+        anm.refresh_from_db()
+        self.assertEqual(anm.prio, 4)
+
+
+class MaxAGWahlenTemplateTest(TestCase):
+    def test_selection_page_uses_limit(self):
+        AppConfig.objects.update_or_create(pk=1, defaults={'anmeldung_offen': True})
+        self.client.post(reverse('register_schueler'), {
+            'name': 'Kind', 'email': 'kind@test.de', 'klassenstufe': 2, 'notfall_telefon': '1'
+        })
+        res = self.client.get(reverse('select_ags'))
+        self.assertContains(res, '0 von 4 AGs gewählt')
+        self.assertContains(res, 'const MAX_SELECTIONS = 4;')
+        self.assertNotContains(res, 'von 5')
+
+    def test_manual_intervention_uses_limit(self):
+        self.client.force_login(User.objects.create(username="staff@test.de", is_staff=True))
+        ag = AG.objects.create(name="Sport", beschreibung="x", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4,
+                               status=AG.Status.APPROVED, verantwortlicher_name="L", verantwortlicher_email="l@test.de")
+        profil = SchuelerProfile.objects.create(user=User.objects.create(username="e@test.de"), name="Kind", klassenstufe=2)
+        Anmeldung.objects.create(schueler=profil, ag=ag, prio=1)
+        res = self.client.get(reverse('manual_intervention'))
+        self.assertContains(res, 'max="4"')
+
+
+class LaufendesHalbjahrLimitTest(TestCase):
+    """Das laufende Halbjahr behält Limit 5, erst der Halbjahreswechsel stellt auf 4 um."""
+
+    def setUp(self):
+        AppConfig.objects.update_or_create(pk=1, defaults={'anmeldung_offen': True, 'max_ag_wahlen': 5})
+
+    def test_selection_page_shows_old_limit(self):
+        self.client.post(reverse('register_schueler'), {
+            'name': 'Kind', 'email': 'kind@test.de', 'klassenstufe': 2, 'notfall_telefon': '1'
+        })
+        res = self.client.get(reverse('select_ags'))
+        self.assertContains(res, '0 von 5 AGs gewählt')
+
+    def test_prio_5_stays_valid_and_lottery_runs(self):
+        from ags.utils import run_lottery
+        ag = AG.objects.create(name="Sport", beschreibung="x", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4,
+                               status=AG.Status.APPROVED, verantwortlicher_name="L", verantwortlicher_email="l@test.de")
+        profil = SchuelerProfile.objects.create(user=User.objects.create(username="e@test.de"), name="Kind", klassenstufe=2)
+        anm = Anmeldung.objects.create(schueler=profil, ag=ag, prio=5)
+        run_lottery()
+        anm.refresh_from_db()
         self.assertEqual(anm.prio, 5)
+        self.assertEqual(anm.status, Anmeldung.Status.ACCEPTED)
+
+    def test_next_semester_switches_to_new_limit(self):
+        import tempfile
+        from io import StringIO
+        from django.core.management import call_command
+        from ags.models import MAX_AG_WAHLEN
+        from django.test import override_settings
+        with tempfile.TemporaryDirectory() as tmp, override_settings(SEMESTER_BACKUP_DIR=tmp):
+            call_command('next_semester', stdout=StringIO())
+        self.assertEqual(AppConfig.load().max_ag_wahlen, MAX_AG_WAHLEN)
+        self.assertEqual(MAX_AG_WAHLEN, 4)
 
 
 class AdminAGOverviewTest(TestCase):

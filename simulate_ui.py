@@ -79,7 +79,7 @@ def simulate():
             available_ids = [cb['value'] for cb in available_checkboxes]
             
             if available_ids:
-                num_to_select = min(len(available_ids), random.randint(3, 5))
+                num_to_select = min(len(available_ids), random.randint(2, 4))
                 selected_ids = random.sample(available_ids, num_to_select)
                 
                 csrf2 = soup.find('input', {'name': 'csrfmiddlewaretoken'})['value']

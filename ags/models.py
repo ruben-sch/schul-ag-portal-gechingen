@@ -3,6 +3,15 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 
+# Höchstzahl an AG-Wünschen pro Kind ab dem nächsten Halbjahr. Das aktuell gültige Limit steht in
+# AppConfig.max_ag_wahlen, damit ein laufendes Halbjahr mit seinem alten Limit (5) zu Ende geht.
+MAX_AG_WAHLEN = 4
+
+
+def max_ag_wahlen():
+    """Aktuell gültige Höchstzahl an AG-Wünschen (und höchste Priorität) pro Kind."""
+    return AppConfig.load().max_ag_wahlen
+
 class AG(models.Model):
     class Status(models.TextChoices):
         SUBMITTED = 'SUBMITTED', 'Eingereicht'
@@ -98,8 +107,9 @@ class Anmeldung(models.Model):
 
     def clean(self):
         from django.core.exceptions import ValidationError
-        if self.prio < 1 or self.prio > 5:
-            raise ValidationError(f"Priorität muss zwischen 1 und 5 liegen (aktuell: {self.prio}).")
+        limit = max_ag_wahlen()
+        if self.prio < 1 or self.prio > limit:
+            raise ValidationError(f"Priorität muss zwischen 1 und {limit} liegen (aktuell: {self.prio}).")
         profile = self.schueler
         if profile:
             if self.ag.klassenstufe_min > profile.klassenstufe or self.ag.klassenstufe_max < profile.klassenstufe:
@@ -151,6 +161,11 @@ class ArchivEintrag(models.Model):
 class AppConfig(models.Model):
     anmeldung_offen = models.BooleanField(default=False)
     ag_registrierung_offen = models.BooleanField("AG-Registrierung offen", default=True)
+    max_ag_wahlen = models.PositiveSmallIntegerField(
+        "Max. AG-Wahlen pro Kind", default=MAX_AG_WAHLEN,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text="Wird beim Halbjahreswechsel auf den neuen Standard gesetzt.",
+    )
 
     class Meta:
         verbose_name = "Konfiguration"

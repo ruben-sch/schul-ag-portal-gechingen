@@ -25,7 +25,7 @@ Der Tab ist in vier Phasen gegliedert, die du von oben nach unten abarbeitest.
 
 ## Phase 3: Anmeldung, Auslosung und Review
 
-1. Eltern melden ihre Kinder an. Jedes Kind kann **höchstens 4 AGs** wählen, die Reihenfolge ist die Priorität (1 bis 4).
+1. Eltern melden ihre Kinder an. Jedes Kind kann **höchstens 4 AGs** wählen, die Reihenfolge ist die Priorität (1 bis 4). Das laufende Halbjahr bleibt noch bei 5 AGs; der Halbjahreswechsel stellt auf 4 um.
    Jede Anmeldung bekommt automatisch eine Eingangsbestätigung per E-Mail (noch keine Zusage).
 2. **Anmeldung schließen.** Die Auslosung ist gesperrt, solange die Anmeldung offen ist.
 3. **Auslosung starten.** Eine erneute Auslosung überschreibt alle bisherigen Zuteilungen. Sobald die endgültigen Mails

@@ -34,7 +34,7 @@ The AG-Verwaltungsportal Schlehengäuschule Gechingen is a web platform for mana
 ## Domain
 - UI text, comments, and the Makefile are German; keep new user-facing strings German. Domain terms: AG, Anmeldung, SchuelerProfile, Klassenstufe (1–4), Warteliste, Halbjahr, Leiter.
 - `ArchivEintrag.halbyahr` is a misspelled field name — don't "fix" it without a migration.
-- Students pick at most 5 AGs with priority 1–5 (enforced in `Anmeldung.clean()`).
+- Students pick at most `AppConfig.max_ag_wahlen` AGs with priority 1 to that limit (read via `models.max_ag_wahlen()`, enforced in `Anmeldung.clean()`). The current semester keeps 5; `next_semester` switches to `MAX_AG_WAHLEN` (4).
 
 ## Git & Releases
 - Conventional commits (`feat:`, `fix(scope):`, `chore:` …). Branches: `feat/…`, `fix/…`.
