@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.9.0](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.8.0...v0.9.0) (2026-10-21)
+
+
+### Features
+
+* **admin:** AG-Leitung, Termine und Ort in der AG-Übersicht ([#138](https://github.com/ruben-sch/schul-ag-portal-gechingen/issues/138)) ([bdd9175](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/bdd9175a6b2a5981fdbbd325f9ea2ce84645d0f3))
+* AG duplizieren ([#140](https://github.com/ruben-sch/schul-ag-portal-gechingen/issues/140)) ([281ae4d](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/281ae4ddf4e05c29bf10ce9dd73f97f1ae448f68)), closes [#132](https://github.com/ruben-sch/schul-ag-portal-gechingen/issues/132)
+* AG im Portal bearbeiten ([#139](https://github.com/ruben-sch/schul-ag-portal-gechingen/issues/139)) ([f6f4cf5](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/f6f4cf5dc5910013f39e4745d96b5fe621b6b08a))
+* Erinnerungsmail an AG-Teilnehmer vor dem Termin ([#137](https://github.com/ruben-sch/schul-ag-portal-gechingen/issues/137)) ([b8d9d76](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/b8d9d76ee752ca01835c10d1251d09a05cb54c0a)), closes [#125](https://github.com/ruben-sch/schul-ag-portal-gechingen/issues/125)
+* maximal 4 AG-Wahlen pro Kind ab dem nächsten Halbjahr ([#141](https://github.com/ruben-sch/schul-ag-portal-gechingen/issues/141)) ([cf6e29f](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/cf6e29f7b701efb02faf35c2f653e12827581691))
+* vorläufige Teilnehmerliste an AG-Leiter ([#135](https://github.com/ruben-sch/schul-ag-portal-gechingen/issues/135)) ([d6a233e](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/d6a233e4832aab1c13fb546f35c3d917cf6c9803))
+* Workflow-Tab im Admin-Bereich ([#136](https://github.com/ruben-sch/schul-ag-portal-gechingen/issues/136)) ([e322a40](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/e322a40637142b6460bca91fead31d0be0974608)), closes [#129](https://github.com/ruben-sch/schul-ag-portal-gechingen/issues/129)
+
+
+### Bug Fixes
+
+* **email:** E-Mail-Versand im Hintergrund mit Timeout und Wiederholung ([#134](https://github.com/ruben-sch/schul-ag-portal-gechingen/issues/134)) ([b0fb1d5](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/b0fb1d5728bb7999654c79a1430e3d0c85d45e94))
+
 ## [0.8.0](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.7.0...v0.8.0) (2026-09-29)
 
 
