@@ -184,6 +184,8 @@ def stats_dashboard(request: HttpRequest) -> HttpResponse:
     stats = services.get_portal_stats() if tab in ['general', 'ags'] else {}
     if tab == 'workflow':
         stats = services.get_workflow_status()
+    elif tab == 'general':
+        stats['phase'] = halbjahr.phase()
     
     # Per Student stats if needed
     search_query = request.GET.get('student_search', '')
@@ -236,6 +238,18 @@ def workflow_toggle(request: HttpRequest) -> HttpResponse:
     else:
         label = 'AG-Registrierung' if name == 'ag_registrierung_offen' else 'Anmeldung'
         messages.success(request, f"{label} ist jetzt {'geöffnet' if offen else 'geschlossen'}.")
+    return _zurueck_zum_dashboard(request)
+
+
+@require_POST
+@user_passes_test(lambda u: u.is_staff)
+def workflow_reset(request: HttpRequest) -> HttpResponse:
+    try:
+        halbjahr.zuruecksetzen()
+    except halbjahr.Gesperrt as e:
+        messages.error(request, str(e))
+    else:
+        messages.success(request, "Die Auslosung wurde zurückgesetzt. Alle Anmeldungen sind wieder offen.")
     return _zurueck_zum_dashboard(request)
 
 

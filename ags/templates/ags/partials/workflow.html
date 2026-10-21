@@ -38,10 +38,15 @@
             <button type="submit" class="btn btn-brand-primary btn-sm" {% if phase.auslosen_gesperrt %}disabled title="{{ phase.auslosen_gesperrt }}"{% endif %}
                 onclick="return confirm('Losverfahren jetzt starten? Bisherige Zuteilungen werden überschrieben.')">Auslosung starten</button>
         </form>
+        <form method="post" action="{% url 'workflow_reset' %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-light btn-sm" {% if phase.zuruecksetzen_gesperrt %}disabled title="{{ phase.zuruecksetzen_gesperrt }}"{% endif %}
+                onclick="return confirm('Auslosung zurücksetzen? Alle Zuteilungen gehen verloren, alle Anmeldungen sind wieder offen.')">Auslosung zurücksetzen</button>
+        </form>
         <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0">
             {% csrf_token %}
             <input type="hidden" name="target" value="leader_preview">
-            <button type="submit" class="btn btn-outline-light btn-sm" {% if not phase.ausgelost %}disabled title="Erst auslosen"{% endif %}
+            <button type="submit" class="btn btn-outline-light btn-sm" {% if phase.vorschau_gesperrt %}disabled title="{{ phase.vorschau_gesperrt }}"{% endif %}
                 onclick="return confirm('Vorläufige Teilnehmerlisten an alle AG-Leiter senden? (nur noch nicht versendete)')">
                 Vorläufige Listen an AG-Leiter ({{ preview_sent_count }}/{{ ag_approved_count }})
             </button>

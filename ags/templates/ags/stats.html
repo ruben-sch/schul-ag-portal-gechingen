@@ -73,7 +73,8 @@
         <form method="post" action="{% url 'run_lottery_internal' %}" class="ms-md-auto mt-2 mt-md-0">
             {% csrf_token %}
             <input type="hidden" name="tab" value="general">
-            <button type="submit" class="btn btn-brand-primary" onclick="return confirm('Losverfahren jetzt starten? Bisherige Zuteilungen werden überschrieben.')">Losverfahren jetzt starten</button>
+            <button type="submit" class="btn btn-brand-primary" {% if phase.auslosen_gesperrt %}disabled title="{{ phase.auslosen_gesperrt }}"{% endif %}
+                onclick="return confirm('Losverfahren jetzt starten? Bisherige Zuteilungen werden überschrieben.')">Losverfahren jetzt starten</button>
         </form>
     </div>
 </div>
