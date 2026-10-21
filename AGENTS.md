@@ -25,7 +25,7 @@ The AG-Verwaltungsportal Schlehengäuschule Gechingen is a web platform for mana
 ## Django & Python Style Rules
 - **Framework Context**: Codebase is implemented in Django 6.1+ (MVT architecture with `ags/` app and `config/` project core); adhere to Django/Python architectural standards.
 - **Route & View Design**: Keep request handlers modular in `ags/views.py` and register routes explicitly in `ags/urls.py`. Type-hint new or touched view signatures and response helpers (`django.http.HttpRequest`, `django.http.HttpResponse`).
-- **Separation of Concerns**: Do not place business logic in views. Keep the lottery in `ags/utils.py`, other business logic in `ags/services.py`, email notifications in `ags/emails.py`, background tasks in `ags/tasks.py`, and forms in `ags/forms.py`.
+- **Separation of Concerns**: Do not place business logic in views. Keep the lottery in `ags/utils.py`, the semester phase and its guarded actions (lottery, reset, new semester, preliminary-list guard) in `ags/halbjahr.py`, other business logic in `ags/services.py`, email notifications in `ags/emails.py`, background tasks in `ags/tasks.py`, and forms in `ags/forms.py`.
 - **Background Tasks**: Never send email synchronously from a view or admin action; enqueue a task from `ags/tasks.py` (Django Tasks, `django-tasks-db` backend). Exception: the admin SMTP test (`test_email`) sends directly, because its point is the immediate result. Tasks raise on failed mails so they show as FAILED in the admin. The `worker` container runs `manage.py db_worker`; tests use the immediate backend.
 - **Model Integrity**: Define business validation in model `clean()` methods (e.g., student grade constraints) and invoke `full_clean()` in `save()` (currently only `Anmeldung` does; follow that pattern for new validation).
 - **Configuration Management**: Access environment variables strictly via `environ.Env` in `config/settings.py`. Never read `os.environ` directly in application logic.
@@ -60,6 +60,7 @@ The AG-Verwaltungsportal Schlehengäuschule Gechingen is a web platform for mana
 - [`ags/models.py`](ags/models.py): Core domain models (`AG`, `SchuelerProfile`, `Anmeldung`, `ArchivEintrag`, `AppConfig`).
 - [`ags/views.py`](ags/views.py): HTTP request handlers and dashboard controllers.
 - [`ags/services.py`](ags/services.py): Core business logic (registration, dashboards, stats).
+- [`ags/halbjahr.py`](ags/halbjahr.py): Semester phase (`phase()`) and the guarded actions `auslosen`, `zuruecksetzen`, `neues_halbjahr`; call these, not `utils` or `next_semester` directly.
 - [`ags/utils.py`](ags/utils.py): Two-phase lottery allocation (`run_lottery`, `reset_lottery`).
 - [`ags/emails.py`](ags/emails.py): Email generation and dispatch via magic links (retry on transient SMTP errors).
 - [`ags/tasks.py`](ags/tasks.py): Background tasks (email sending) processed by the `worker` container.
