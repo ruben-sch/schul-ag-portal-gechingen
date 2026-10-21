@@ -87,3 +87,36 @@ class WorkflowTabTest(TestCase):
         self.assertEqual(res.url, reverse('stats_dashboard') + '?tab=workflow')
         res = self.client.post(reverse('send_bulk_emails'), {'target': 'leaders', 'tab': 'evil'})
         self.assertEqual(res.url, reverse('stats_dashboard') + '?tab=workflow')
+
+    def test_reset_setzt_auslosung_zurueck(self):
+        Anmeldung.objects.update(status=Anmeldung.Status.ACCEPTED)
+        res = self.client.post(reverse('workflow_reset'), {'tab': 'workflow'})
+        self.assertEqual(res.url, reverse('stats_dashboard') + '?tab=workflow')
+        self.assertEqual(Anmeldung.objects.get().status, Anmeldung.Status.PENDING)
+
+    def test_reset_nach_versand_zeigt_grund(self):
+        Anmeldung.objects.update(status=Anmeldung.Status.ACCEPTED)
+        SchuelerProfile.objects.update(acceptance_email_sent=True)
+        res = self.client.post(reverse('workflow_reset'), follow=True)
+        meldungen = [str(m) for m in res.context['messages']]
+        self.assertTrue(any('bereits verschickt' in m for m in meldungen), meldungen)
+        self.assertEqual(Anmeldung.objects.get().status, Anmeldung.Status.ACCEPTED)
+
+    def test_workflow_tab_zeigt_reset_nur_nach_auslosung(self):
+        res = self.client.get(reverse('stats_dashboard'))
+        self.assertContains(res, 'disabled title="Noch nicht ausgelost."')
+        Anmeldung.objects.update(status=Anmeldung.Status.ACCEPTED)
+        res = self.client.get(reverse('stats_dashboard'))
+        self.assertNotContains(res, 'disabled title="Noch nicht ausgelost."')
+        self.assertContains(res, reverse('workflow_reset'))
+
+    def test_vorschau_button_gesperrt_ohne_zusagen(self):
+        Anmeldung.objects.update(status=Anmeldung.Status.REJECTED)
+        res = self.client.get(reverse('stats_dashboard'))
+        self.assertContains(res, 'disabled title="Vorläufige Listen gibt es erst nach der Auslosung."')
+
+    def test_auslosen_button_im_allgemein_tab_zeigt_sperre(self):
+        AppConfig.load()
+        AppConfig.objects.update(anmeldung_offen=True)
+        res = self.client.get(reverse('stats_dashboard') + '?tab=general')
+        self.assertContains(res, 'disabled title="Die Anmeldung ist noch offen.')
