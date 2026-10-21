@@ -15,6 +15,7 @@ from django.utils.html import strip_tags
 from django.conf import settings
 from django.utils import timezone
 from django.db import IntegrityError, transaction
+from . import halbjahr
 from .models import Anmeldung, AG, SchuelerProfile, TerminErinnerung
 from collections import defaultdict
 
@@ -359,8 +360,7 @@ def send_single_leader_preview_email(ag, connection=None):
     Returns True if sent successfully, False on error and None if sending is not allowed
     (before the lottery or after the final list).
     """
-    from .services import leader_preview_blocked_reason
-    sperrgrund = leader_preview_blocked_reason(ag)
+    sperrgrund = halbjahr.phase().vorschau_gesperrt_fuer(ag)
     if sperrgrund:
         logger.info("Vorläufige Liste für %s nicht gesendet: %s", ag.name, sperrgrund)
         return None
@@ -405,9 +405,8 @@ def _listen_stand(ag):
 
 def send_leader_preview_emails(only_unsent=True):
     """Sends the preliminary list to the leaders of all approved AGs. Returns sent/failed counts."""
-    from .services import leader_preview_blocked_reason
     results = {'sent': 0, 'failed': 0}
-    if leader_preview_blocked_reason():
+    if halbjahr.phase().vorschau_gesperrt:
         return results
     # AGs mit verschickter endgültiger Liste brauchen keine vorläufige mehr.
     ags = AG.objects.filter(status=AG.Status.APPROVED, leader_email_sent=False)
