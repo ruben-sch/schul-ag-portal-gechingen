@@ -11,6 +11,7 @@ class ArchivEintragAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False # Nur via System-Reset
+from . import services
 from .utils import run_lottery, reset_lottery
 from .tasks import send_allocation_emails_task
 
@@ -54,16 +55,12 @@ class AGAdmin(admin.ModelAdmin):
     search_fields = ('name', 'verantwortlicher_name', 'verantwortlicher_email')
 
     def leader_magic_link(self, obj):
-        from django.contrib.auth.models import User
         from sesame.utils import get_query_string
         from django.urls import reverse
         from django.utils.html import format_html
         
         # Get or create user for the leader so they can actually log in
-        user, created = User.objects.get_or_create(
-            username=obj.verantwortlicher_email,
-            defaults={'email': obj.verantwortlicher_email, 'first_name': obj.verantwortlicher_name}
-        )
+        user = services.ensure_leader_user(obj)
         
         link = reverse('dashboard') + get_query_string(user)
         return format_html('<a href="{}" target="_blank">Leiter Login</a>', link)

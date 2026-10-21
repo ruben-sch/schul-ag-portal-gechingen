@@ -1,11 +1,13 @@
 import logging
+from typing import Any
 from smtplib import SMTPException
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.core.mail import EmailMultiAlternatives
 from django.urls import reverse, reverse_lazy
-from django.views.generic import TemplateView, CreateView, FormView
+from django.views.generic import TemplateView, CreateView, FormView, UpdateView
+from django.utils.decorators import method_decorator
 from django.conf import settings
 from datetime import datetime
 from django.http import HttpRequest, HttpResponse
@@ -14,7 +16,7 @@ import csv
 from django.db.models import Count, Sum, Min, Max, Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from sesame.utils import get_query_string
-from .forms import AGProposalForm, SchuelerFirstStepForm, LoginForm
+from .forms import AGProposalForm, AGEditForm, SchuelerFirstStepForm, LoginForm
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig
 from .utils import run_lottery
 from .emails import BCC_ADRESSE
@@ -50,15 +52,39 @@ class ProposeAGView(CreateView):
 
     def form_valid(self, form):
         ag = form.save()
-        User.objects.get_or_create(
-            username=ag.verantwortlicher_email,
-            defaults={
-                'email': ag.verantwortlicher_email,
-                'first_name': ag.verantwortlicher_name
-            }
-        )
+        services.ensure_leader_user(ag)
         messages.success(self.request, "Vielen Dank! Die AG wurde eingereicht und wird nun geprüft.")
         return super().form_valid(form)
+
+
+@method_decorator(user_passes_test(lambda u: u.is_staff), name='dispatch')
+class AGEditView(UpdateView):
+    model = AG
+    form_class = AGEditForm
+    template_name = 'ags/propose_ag.html'
+    success_url = reverse_lazy('stats_dashboard')
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context['edit_mode'] = True
+        return context
+
+    def get_success_url(self) -> str:
+        return f"{self.success_url}?tab=ags"
+
+    def form_valid(self, form: AGEditForm) -> HttpResponse:
+        vorher = AG.objects.get(pk=self.object.pk).verantwortlicher_email
+        leitung_geaendert = vorher.strip().lower() != form.cleaned_data['verantwortlicher_email']
+        if leitung_geaendert:
+            form.instance.leader_email_sent = False
+        response = super().form_valid(form)
+        services.ensure_leader_user(self.object)
+        messages.success(self.request, f"AG \"{self.object.name}\" wurde gespeichert.")
+        if leitung_geaendert:
+            messages.info(self.request, "Die AG-Leitung wurde geändert. Die Teilnehmerliste muss erneut verschickt werden.")
+        for warnung in services.ag_bearbeiten_warnungen(self.object):
+            messages.warning(self.request, warnung)
+        return response
 
 class RegisterSchuelerStep1View(FormView):
     form_class = SchuelerFirstStepForm
@@ -122,16 +148,15 @@ class RequestMagicLinkView(FormView):
 
     def form_valid(self, form):
         email = form.cleaned_data['email']
-        try:
-            user = User.objects.get(email=email)
+        user = User.objects.filter(email__iexact=email).order_by('id').first()
+        if user is not None:
             link = self.request.build_absolute_uri(reverse('dashboard'))
             link += get_query_string(user)
             print(f"MAGIC LINK FOR {email}: {link}")
             messages.success(self.request, f"Ein Anmelde-Link wurde an {email} gesendet (siehe Server-Log).")
             return super().form_valid(form)
-        except User.DoesNotExist:
-            messages.error(self.request, "Diese E-Mail-Adresse ist nicht bekannt.")
-            return self.form_invalid(form)
+        messages.error(self.request, "Diese E-Mail-Adresse ist nicht bekannt.")
+        return self.form_invalid(form)
 
 @login_required
 def dashboard(request):

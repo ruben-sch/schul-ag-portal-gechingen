@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 class AG(models.Model):
@@ -45,6 +46,20 @@ class AG(models.Model):
     
     def __str__(self):
         return self.name
+
+    def clean(self):
+        super().clean()
+        if (self.klassenstufe_min is not None and self.klassenstufe_max is not None
+                and self.klassenstufe_min > self.klassenstufe_max):
+            raise ValidationError({
+                'klassenstufe_max': "Die höchste Klassenstufe darf nicht kleiner als die niedrigste sein."
+            })
+
+    def save(self, *args, **kwargs):
+        # Nur clean() statt full_clean(): Altdaten mit sonst ungültigen Feldern sollen weiter speicherbar sein,
+        # z. B. wenn nach dem Mailversand ein Flag gesetzt wird.
+        self.clean()
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "AG"
