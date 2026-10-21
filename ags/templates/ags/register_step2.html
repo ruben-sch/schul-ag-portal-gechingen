@@ -7,16 +7,16 @@
     <div class="col-12 col-lg-10">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
             <h1 class="text-light mb-0">Verfügbare AGs</h1>
-            <span id="selection-counter" class="badge bg-secondary fs-6 py-2 px-3">0 von 5 AGs gewählt</span>
+            <span id="selection-counter" class="badge bg-secondary fs-6 py-2 px-3">0 von {{ max_ag_wahlen }} AGs gewählt</span>
         </div>
         <p class="text-secondary mb-4">
-            Wähle bis zu 5 Wunsch-AGs für Klasse {{ reg_data.klassenstufe }}. Die Reihenfolge bestimmt deine Priorität (Priorität 1 bis 5).
+            Wähle bis zu {{ max_ag_wahlen }} Wunsch-AGs für Klasse {{ reg_data.klassenstufe }}. Die Reihenfolge bestimmt deine Priorität (Priorität 1 bis {{ max_ag_wahlen }}).
         </p>
 
         <div id="max-limit-alert" class="alert alert-warning d-none align-items-center mb-4" role="alert" aria-live="polite">
             <i class="bi bi-exclamation-triangle-fill fs-5 me-2 flex-shrink-0"></i>
             <div>
-                <strong>Maximale Anzahl erreicht:</strong> Du hast die maximale Anzahl von 5 Wunsch-AGs ausgewählt. Es können keine weiteren AGs ausgewählt werden. Du kannst jedoch eine bereits ausgewählte AG abwählen, um eine andere zu wählen.
+                <strong>Maximale Anzahl erreicht:</strong> Du hast die maximale Anzahl von {{ max_ag_wahlen }} Wunsch-AGs ausgewählt. Es können keine weiteren AGs ausgewählt werden. Du kannst jedoch eine bereits ausgewählte AG abwählen, um eine andere zu wählen.
             </div>
         </div>
 
@@ -78,7 +78,7 @@
         const form = document.querySelector('form');
         const counter = document.getElementById('selection-counter');
         const limitAlert = document.getElementById('max-limit-alert');
-        const MAX_SELECTIONS = 5;
+        const MAX_SELECTIONS = {{ max_ag_wahlen }};
         let selectedOrder = [];
 
         function updateUI() {

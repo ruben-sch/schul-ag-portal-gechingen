@@ -17,7 +17,7 @@ from django.db.models import Count, Sum, Min, Max, Q
 from django.contrib.auth.decorators import login_required, user_passes_test
 from sesame.utils import get_query_string
 from .forms import AGProposalForm, AGEditForm, SchuelerFirstStepForm, LoginForm
-from .models import AG, SchuelerProfile, Anmeldung, AppConfig
+from .models import AG, SchuelerProfile, Anmeldung, AppConfig, max_ag_wahlen
 from .utils import run_lottery
 from .emails import BCC_ADRESSE
 from . import services
@@ -102,7 +102,7 @@ class RegisterSchuelerStep1View(FormView):
         self.request.session['reg_data'] = form.cleaned_data
         return super().form_valid(form)
 
-def select_ags(request):
+def select_ags(request: HttpRequest) -> HttpResponse:
     reg_data = request.session.get('reg_data')
     if not reg_data:
         return redirect('register_schueler')
@@ -115,8 +115,8 @@ def select_ags(request):
         
         if not selected_ag_ids:
             messages.error(request, "Bitte wähle mindestens eine gültige AG aus.")
-        elif len(selected_ag_ids) > 5:
-            messages.error(request, "Es dürfen maximal 5 AGs ausgewählt werden.")
+        elif len(selected_ag_ids) > max_ag_wahlen():
+            messages.error(request, f"Es dürfen maximal {max_ag_wahlen()} AGs ausgewählt werden.")
         else:
             # Create/Get user and profile
             email = reg_data['email']
@@ -138,7 +138,8 @@ def select_ags(request):
             
     return render(request, 'ags/register_step2.html', {
         'ags': available_ags,
-        'reg_data': reg_data
+        'reg_data': reg_data,
+        'max_ag_wahlen': max_ag_wahlen(),
     })
 
 class RequestMagicLinkView(FormView):
@@ -270,12 +271,12 @@ def manual_intervention(request: HttpRequest) -> HttpResponse:
                     new_prio = request.POST.get('prio')
                     if new_prio and new_prio.isdigit():
                         prio_val = int(new_prio)
-                        if 1 <= prio_val <= 5:
+                        if 1 <= prio_val <= max_ag_wahlen():
                             anm.prio = prio_val
                             anm.save()
                             messages.success(request, f"Priorität für {anm.schueler.name} in {anm.ag.name} auf {new_prio} aktualisiert.")
                         else:
-                            messages.error(request, "Priorität muss zwischen 1 und 5 liegen.")
+                            messages.error(request, f"Priorität muss zwischen 1 und {max_ag_wahlen()} liegen.")
         except Anmeldung.DoesNotExist:
             logger.warning(f"Anmeldung mit ID {anm_id} nicht gefunden in manual_intervention.")
             messages.error(request, "Ausgewählte Anmeldung konnte nicht gefunden werden.")
@@ -301,7 +302,8 @@ def manual_intervention(request: HttpRequest) -> HttpResponse:
     return render(request, 'ags/manual_intervention.html', {
         'ags': ags,
         'students': students,
-        'search_query': search_query
+        'search_query': search_query,
+        'max_ag_wahlen': max_ag_wahlen(),
     })
 
 @user_passes_test(lambda u: u.is_staff)

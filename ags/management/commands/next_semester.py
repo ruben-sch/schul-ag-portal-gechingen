@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-from ags.models import AG, SchuelerProfile, Anmeldung, AppConfig, ArchivEintrag
+from ags.models import AG, SchuelerProfile, Anmeldung, AppConfig, ArchivEintrag, MAX_AG_WAHLEN
 from django.core import serializers
 from django.conf import settings
 
@@ -66,8 +66,9 @@ class Command(BaseCommand):
         AG.objects.all().delete()
         
         deleted_users, _ = User.objects.filter(is_superuser=False, is_staff=False).delete()
-        # Neue Runde: Anmeldung zu, AG-Registrierung offen, damit Leiter direkt einreichen können.
-        AppConfig.objects.all().update(anmeldung_offen=False, ag_registrierung_offen=True)
+        # Neue Runde: Anmeldung zu, AG-Registrierung offen, damit Leiter direkt einreichen können,
+        # und ab jetzt gilt das neue Wahl-Limit.
+        AppConfig.objects.all().update(anmeldung_offen=False, ag_registrierung_offen=True, max_ag_wahlen=MAX_AG_WAHLEN)
         
         self.stdout.write(self.style.SUCCESS(
             f"Datenbank bereinigt. {deleted_users} Benutzer gelöscht. Bereit für die neue Runde!"

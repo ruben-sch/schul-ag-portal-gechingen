@@ -44,13 +44,13 @@ class ModelTest(TestCase):
         self.assertEqual(ag.get_termine_display(), "01.03.2024 (14:00-15:00)")
 
     def test_anmeldung_priority_validation(self):
-        """Ensures that Anmeldung priority must be between 1 and 5."""
+        """Ensures that Anmeldung priority must be between 1 and 4."""
         ag = AG.objects.create(name="Prio AG", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4)
         user = User.objects.create(username="prio_kid@test.de")
         profile = SchuelerProfile.objects.create(user=user, name="PrioKid", klassenstufe=2)
 
-        # Priorities 1 to 5 are valid
-        for p in range(1, 6):
+        # Priorities 1 to 4 are valid
+        for p in range(1, 5):
             anm = Anmeldung(schueler=profile, ag=ag, prio=p)
             anm.full_clean()
 
@@ -58,7 +58,7 @@ class ModelTest(TestCase):
         with self.assertRaises(ValidationError):
             Anmeldung(schueler=profile, ag=ag, prio=0).full_clean()
 
-        # Priority 6 is invalid
+        # Priority 5 is invalid
         with self.assertRaises(ValidationError):
-            Anmeldung(schueler=profile, ag=ag, prio=6).full_clean()
+            Anmeldung(schueler=profile, ag=ag, prio=5).full_clean()
 
