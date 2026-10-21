@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils.translation import gettext_lazy as _
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig, ArchivEintrag, TerminErinnerung
 
@@ -20,6 +20,11 @@ def make_approved(modeladmin, request, queryset):
 
 @admin.action(description='Losverfahren starten')
 def trigger_lottery(modeladmin, request, queryset):
+    from .services import lottery_blocked_reason
+    blocked = lottery_blocked_reason()
+    if blocked:
+        modeladmin.message_user(request, blocked, level=messages.ERROR)
+        return
     run_lottery()
     modeladmin.message_user(request, "Losverfahren wurde ausgeführt.")
 

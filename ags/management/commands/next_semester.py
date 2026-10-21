@@ -5,6 +5,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from ags.models import AG, SchuelerProfile, Anmeldung, AppConfig, ArchivEintrag
 from django.core import serializers
+from django.conf import settings
 
 class Command(BaseCommand):
     help = 'Archiviert die aktuelle Runde in der Datenbank und setzt das System für das nächste Halbjahr zurück.'
@@ -38,7 +39,7 @@ class Command(BaseCommand):
 
         # 2. JSON-Sicherung (Zusatz-Backup / Log-Ausgabe)
         timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        archive_dir = 'archives'
+        archive_dir = settings.SEMESTER_BACKUP_DIR
         if not os.path.exists(archive_dir):
             os.makedirs(archive_dir)
         
@@ -65,7 +66,8 @@ class Command(BaseCommand):
         AG.objects.all().delete()
         
         deleted_users, _ = User.objects.filter(is_superuser=False, is_staff=False).delete()
-        AppConfig.objects.all().update(anmeldung_offen=False)
+        # Neue Runde: Anmeldung zu, AG-Registrierung offen, damit Leiter direkt einreichen können.
+        AppConfig.objects.all().update(anmeldung_offen=False, ag_registrierung_offen=True)
         
         self.stdout.write(self.style.SUCCESS(
             f"Datenbank bereinigt. {deleted_users} Benutzer gelöscht. Bereit für die neue Runde!"

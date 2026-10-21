@@ -1,0 +1,72 @@
+{% comment %}Workflow-Tab: ein Halbjahr in vier Phasen. Context aus services.get_workflow_status().{% endcomment %}
+<div class="glass-card p-4 mb-4">
+    <h2 class="h5 text-secondary mb-3 text-uppercase tracking-wide">Phase 1 · Neues Halbjahr</h2>
+    <p class="text-secondary small mb-3">Archiviert alle Anmeldungen und löscht AGs, Schüler und Eltern-Konten. Danach ist die AG-Registrierung geöffnet und die Schüler-Anmeldung geschlossen.</p>
+    <div class="d-flex flex-wrap gap-3 align-items-center">
+        <form method="post" action="{% url 'workflow_next_semester' %}" class="m-0 d-flex flex-wrap gap-2 align-items-center"
+            onsubmit="return confirm('Wirklich ein neues Halbjahr starten? Alle AGs, Schüler und Anmeldungen werden archiviert und gelöscht.')">
+            {% csrf_token %}
+            <input type="text" name="bestaetigung" class="form-control form-control-sm bg-dark text-light border-secondary w-auto"
+                placeholder="NEUES HALBJAHR eingeben" autocomplete="off" required>
+            <button type="submit" class="btn btn-outline-danger btn-sm">Neues Halbjahr starten</button>
+        </form>
+        {% include 'ags/partials/workflow_toggle.html' with name='ag_registrierung_offen' offen=config.ag_registrierung_offen label='AG-Registrierung' %}
+    </div>
+</div>
+
+<div class="glass-card p-4 mb-4">
+    <h2 class="h5 text-secondary mb-3 text-uppercase tracking-wide">Phase 2 · AG-Eingabe & Review</h2>
+    <p class="text-light mb-3">{{ ag_count }} AGs eingereicht, davon {{ ag_approved_count }} genehmigt.</p>
+    <div class="d-flex flex-wrap gap-3 align-items-center">
+        <a href="?tab=ags" class="btn btn-outline-light btn-sm">AGs prüfen</a>
+        <a href="{% url 'admin:ags_ag_changelist' %}" class="btn btn-outline-light btn-sm">AGs genehmigen (Django-Admin)</a>
+    </div>
+</div>
+
+<div class="glass-card p-4 mb-4">
+    <h2 class="h5 text-secondary mb-3 text-uppercase tracking-wide">Phase 3 · Anmeldung, Auslosung & Review</h2>
+    <p class="text-light mb-3">
+        {{ schueler_count }} Schüler mit {{ anmeldung_count }} Anmeldungen.
+        {% if lottery_done %}Auslosung ist erfolgt: {{ zugeteilte_count }} Schüler haben einen Platz.{% else %}Noch nicht ausgelost.{% endif %}
+    </p>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        {% include 'ags/partials/workflow_toggle.html' with name='anmeldung_offen' offen=config.anmeldung_offen label='Anmeldung für Schüler' %}
+        <form method="post" action="{% url 'run_lottery_internal' %}" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-brand-primary btn-sm" {% if lottery_blocked %}disabled title="{{ lottery_blocked }}"{% endif %}
+                onclick="return confirm('Losverfahren jetzt starten? Bisherige Zuteilungen werden überschrieben.')">Auslosung starten</button>
+        </form>
+        <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="target" value="leader_preview">
+            <button type="submit" class="btn btn-outline-light btn-sm" {% if not lottery_done %}disabled title="Erst auslosen"{% endif %}
+                onclick="return confirm('Vorläufige Teilnehmerlisten an alle AG-Leiter senden? (nur noch nicht versendete)')">
+                Vorläufige Listen an AG-Leiter ({{ preview_sent_count }}/{{ ag_approved_count }})
+            </button>
+        </form>
+        <a href="{% url 'manual_intervention' %}" class="btn btn-outline-light btn-sm">Manuelle Korrektur</a>
+    </div>
+</div>
+
+<div class="glass-card p-4 mb-4">
+    <h2 class="h5 text-secondary mb-3 text-uppercase tracking-wide">Phase 4 · E-Mail-Versand</h2>
+    <p class="text-secondary small mb-3">Es werden nur noch nicht versendete Mails verschickt. Der Versand läuft im Hintergrund, die Zähler aktualisieren sich nach einem Neuladen.</p>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="target" value="leaders">
+            <button type="submit" class="btn btn-outline-light btn-sm" {% if not lottery_done %}disabled title="Erst auslosen"{% endif %}
+                onclick="return confirm('Finale Teilnehmerlisten an alle AG-Leiter senden?')">
+                Mail an AG-Leiter ({{ leader_sent_count }}/{{ ag_approved_count }})
+            </button>
+        </form>
+        <form method="post" action="{% url 'send_bulk_emails' %}" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="target" value="students">
+            <button type="submit" class="btn btn-outline-light btn-sm" {% if not lottery_done %}disabled title="Erst auslosen"{% endif %}
+                onclick="return confirm('Zuteilungen an alle Teilnehmer senden?')">
+                Mail an Teilnehmer ({{ acceptance_sent_count }}/{{ zugeteilte_count }})
+            </button>
+        </form>
+    </div>
+</div>

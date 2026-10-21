@@ -9,6 +9,7 @@ from django.views.generic import TemplateView, CreateView, FormView
 from django.conf import settings
 from datetime import datetime
 from django.http import HttpRequest, HttpResponse
+from django.views.decorators.http import require_POST
 import csv
 from django.db.models import Count, Sum, Min, Max, Q
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -145,9 +146,11 @@ def dashboard(request):
     })
 
 @user_passes_test(lambda u: u.is_staff)
-def stats_dashboard(request):
-    tab = request.GET.get('tab', 'general')
+def stats_dashboard(request: HttpRequest) -> HttpResponse:
+    tab = request.GET.get('tab', 'workflow')
     stats = services.get_portal_stats() if tab in ['general', 'ags'] else {}
+    if tab == 'workflow':
+        stats = services.get_workflow_status()
     
     # Per Student stats if needed
     search_query = request.GET.get('student_search', '')
@@ -165,11 +168,53 @@ def stats_dashboard(request):
         'tab': tab
     })
 
+DASHBOARD_TABS = ('workflow', 'general', 'ags', 'students')
+
+
+def _zurueck_zum_dashboard(request: HttpRequest) -> HttpResponse:
+    """Leitet nach einer Aktion in den Dashboard-Tab zurück, aus dem das Formular kam."""
+    tab = request.POST.get('tab')
+    if tab not in DASHBOARD_TABS:
+        tab = 'workflow'
+    return redirect(f"{reverse('stats_dashboard')}?tab={tab}")
+
+
+@require_POST
 @user_passes_test(lambda u: u.is_staff)
-def run_lottery_view(request):
-    run_lottery()
-    messages.success(request, "Das Losverfahren wurde erfolgreich durchgeführt.")
-    return redirect('stats_dashboard')
+def run_lottery_view(request: HttpRequest) -> HttpResponse:
+    blocked = services.lottery_blocked_reason()
+    if blocked:
+        messages.error(request, blocked)
+    else:
+        run_lottery()
+        messages.success(request, "Das Losverfahren wurde erfolgreich durchgeführt.")
+    return _zurueck_zum_dashboard(request)
+
+
+@require_POST
+@user_passes_test(lambda u: u.is_staff)
+def workflow_toggle(request: HttpRequest) -> HttpResponse:
+    name = request.POST.get('name')
+    offen = request.POST.get('offen') == '1'
+    try:
+        services.set_workflow_schalter(name, offen)
+    except ValueError:
+        messages.error(request, "Unbekannte Einstellung.")
+    else:
+        label = 'AG-Registrierung' if name == 'ag_registrierung_offen' else 'Anmeldung'
+        messages.success(request, f"{label} ist jetzt {'geöffnet' if offen else 'geschlossen'}.")
+    return _zurueck_zum_dashboard(request)
+
+
+@require_POST
+@user_passes_test(lambda u: u.is_staff)
+def workflow_next_semester(request: HttpRequest) -> HttpResponse:
+    if request.POST.get('bestaetigung') != 'NEUES HALBJAHR':
+        messages.error(request, "Bitte zur Bestätigung NEUES HALBJAHR eingeben.")
+        return _zurueck_zum_dashboard(request)
+    services.start_new_semester()
+    messages.success(request, "Das Halbjahr wurde archiviert und das System für die neue Runde zurückgesetzt.")
+    return _zurueck_zum_dashboard(request)
 
 @user_passes_test(lambda u: u.is_staff)
 def manual_intervention(request: HttpRequest) -> HttpResponse:
@@ -277,7 +322,7 @@ def resend_leader_email(request: HttpRequest) -> HttpResponse:
             logger.error(f"Unerwarteter Fehler beim AG-Leiter E-Mail-Nachversand: {e}", exc_info=True)
             messages.error(request, "Ein Fehler ist aufgetreten.")
             
-    return redirect('stats_dashboard')
+    return _zurueck_zum_dashboard(request)
 
 @user_passes_test(lambda u: u.is_staff)
 def stats_export(request):
@@ -407,4 +452,4 @@ def send_bulk_emails_view(request: HttpRequest) -> HttpResponse:
         else:
             messages.error(request, "Ungültiges Zielfeld für den E-Mail-Versand.")
 
-    return redirect(reverse('stats_dashboard') + '?tab=general')
+    return _zurueck_zum_dashboard(request)

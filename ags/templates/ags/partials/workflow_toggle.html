@@ -1,0 +1,13 @@
+<form method="post" action="{% url 'workflow_toggle' %}" class="m-0 d-flex align-items-center gap-2">
+    {% csrf_token %}
+    <input type="hidden" name="name" value="{{ name }}">
+    <input type="hidden" name="offen" value="{% if offen %}0{% else %}1{% endif %}">
+    <span class="text-light small">{{ label }}:</span>
+    {% if offen %}
+    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">offen</span>
+    <button type="submit" class="btn btn-outline-warning btn-sm">Schließen</button>
+    {% else %}
+    <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary">geschlossen</span>
+    <button type="submit" class="btn btn-outline-success btn-sm">Öffnen</button>
+    {% endif %}
+</form>

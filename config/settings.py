@@ -140,6 +140,8 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
 EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=20)
 # Grundwartezeit in Sekunden zwischen Versuchen bei vorübergehenden Versandfehlern (verdoppelt sich je Versuch).
 EMAIL_RETRY_DELAY = env.float("EMAIL_RETRY_DELAY", default=5)
+# Ablage der JSON-Sicherung beim Halbjahreswechsel (next_semester).
+SEMESTER_BACKUP_DIR = env("SEMESTER_BACKUP_DIR", default=str(BASE_DIR / "archives"))
 
 # Erinnerungsmail an Teilnehmer: so viele Tage vor dem AG-Termin, frühestens ab dieser Uhrzeit (Stunde, lokal).
 REMINDER_DAYS_BEFORE = env.int("REMINDER_DAYS_BEFORE", default=2)
