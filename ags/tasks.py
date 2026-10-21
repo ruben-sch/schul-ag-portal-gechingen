@@ -76,3 +76,16 @@ def send_registration_confirmation_task(schueler_id):
     schueler = SchuelerProfile.objects.select_related('user').get(id=schueler_id)
     if not emails.send_registration_confirmation(schueler):
         raise EmailVersandFehler(f"Anmeldebestätigung an {schueler.user.email} konnte nicht gesendet werden.")
+
+
+@task
+def send_leader_preview_emails_task(only_unsent=True):
+    ergebnis = emails.send_leader_preview_emails(only_unsent=only_unsent)
+    return _pruefen("vorläufige Listen", ergebnis['sent'], ergebnis['failed'])
+
+
+@task
+def send_leader_preview_email_task(ag_id):
+    ag = AG.objects.get(id=ag_id)
+    if emails.send_single_leader_preview_email(ag) is False:
+        raise EmailVersandFehler(f"Vorläufige Liste für {ag.name} konnte nicht gesendet werden.")

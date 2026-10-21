@@ -152,3 +152,13 @@ def get_students_with_stats(search_query=None, min_ag_filter=None, sort_by='name
         students = students.order_by('name')
             
     return students
+
+
+def leader_preview_blocked_reason(ag=None):
+    """Grund, warum keine vorläufige Liste verschickt werden darf, sonst None."""
+    if (Anmeldung.objects.filter(status=Anmeldung.Status.PENDING).exists()
+            or not Anmeldung.objects.filter(status=Anmeldung.Status.ACCEPTED).exists()):
+        return "Vorläufige Listen gibt es erst nach der Auslosung."
+    if ag is not None and ag.leader_email_sent:
+        return f"Für {ag.name} wurde die endgültige Liste bereits verschickt."
+    return None
