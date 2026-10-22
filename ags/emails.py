@@ -237,6 +237,12 @@ def send_single_acceptance_email(schueler, ag_list=None, connection=None):
         )
         msg.attach_alternative(html_message, "text/html")
         _senden(msg)
+        # Wurde während des Versands neu ausgelost oder zurückgesetzt, ist die Zusage veraltet. Das Flag bleibt
+        # dann False, sonst wären Auslosen und Zurücksetzen für das ganze Halbjahr gesperrt.
+        if _zusagen(schueler) != sorted(ag.id for ag in ag_list):
+            logger.warning("Zuteilung für %s hat sich während des Versands geändert; nicht als gesendet markiert.",
+                           schueler.user.email)
+            return False
         schueler.acceptance_email_sent = True
         # Nur das Flag schreiben: Ein Bulk-Lauf hält das Objekt lange, Änderungen der Eltern sollen erhalten bleiben.
         schueler.save(update_fields=['acceptance_email_sent'])
@@ -244,6 +250,11 @@ def send_single_acceptance_email(schueler, ag_list=None, connection=None):
     except Exception as e:
         logger.error(f"Failed to send acceptance email to {schueler.user.email}: {e}")
         return False
+
+def _zusagen(schueler):
+    return sorted(Anmeldung.objects.filter(schueler=schueler, status=Anmeldung.Status.ACCEPTED)
+                  .values_list('ag_id', flat=True))
+
 
 def send_single_leader_email(ag, connection=None):
     """
