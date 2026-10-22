@@ -483,3 +483,33 @@ class TerminReminderTest(TestCase):
         self.client.force_login(admin)
         self.assertEqual(self.client.get(reverse('admin:ags_terminerinnerung_add')).status_code, 403)
         self.assertEqual(self.client.get(reverse('admin:ags_terminerinnerung_changelist')).status_code, 200)
+
+
+class ZuruecksetzenWaehrendVersandTest(TestCase):
+    def setUp(self):
+        ag = AG.objects.create(name="A", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4,
+                               status=AG.Status.APPROVED, verantwortlicher_email='l@t.de', verantwortlicher_name='L')
+        for i in range(2):
+            u = User.objects.create(username=f"e{i}@t.de", email=f"e{i}@t.de")
+            p = SchuelerProfile.objects.create(user=u, name=f"K{i}", klassenstufe=2)
+            Anmeldung.objects.create(schueler=p, ag=ag, prio=1)
+
+    def test_zuruecksetzen_waehrend_zuteilungsmails_sperrt_halbjahr_nicht(self):
+        from unittest import mock
+        from ags import emails, halbjahr
+        halbjahr.auslosen()
+        echt = emails._senden
+        aufrufe = []
+
+        def senden(msg):
+            if not aufrufe:
+                # Ein zweiter Admin setzt die Auslosung zurück, während die erste Zuteilungsmail unterwegs ist.
+                halbjahr.zuruecksetzen()
+            aufrufe.append(msg)
+            return echt(msg)
+
+        with mock.patch('ags.emails._senden', side_effect=senden):
+            emails.send_allocation_emails(only_unsent=True, send_students=True, send_leaders=False)
+        # Keine Zuteilung gilt als verschickt, also lässt sich neu auslosen statt dauerhaft gesperrt zu sein.
+        self.assertEqual(SchuelerProfile.objects.filter(acceptance_email_sent=True).count(), 0)
+        self.assertEqual(halbjahr.phase().auslosen_gesperrt, "")
