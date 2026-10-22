@@ -64,8 +64,11 @@ def phase() -> Phase:
     )
 
 
-def _sperren() -> None:
-    """Sperrt die Konfigurationszeile bis zum Ende der Transaktion: gleichzeitige Aktionen laufen nacheinander."""
+def sperren() -> None:
+    """Sperrt die Konfigurationszeile bis zum Ende der Transaktion: gleichzeitige Aktionen laufen nacheinander.
+
+    Nur innerhalb von transaction.atomic aufrufen. Auch wer ein Flag schreibt, das von der Zuteilung abhängt, sperrt hier.
+    """
     AppConfig.load()
     AppConfig.objects.select_for_update().get(pk=1)
 
@@ -73,7 +76,7 @@ def _sperren() -> None:
 def _ausfuehren(aktion: Callable[[], None], sperrgrund: Callable[[Phase], str] | None = None) -> None:
     """Führt eine Aktion unter der Sperre aus; mit sperrgrund nur, wenn sie im aktuellen Stand erlaubt ist, sonst Gesperrt."""
     with transaction.atomic():
-        _sperren()
+        sperren()
         # Unter der Sperre neu prüfen: Die Phase, die die Seite angezeigt hat, kann veraltet sein.
         if sperrgrund and (grund := sperrgrund(phase())):
             raise Gesperrt(grund)

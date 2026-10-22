@@ -62,7 +62,8 @@ def send_leader_batch_task(ag_ids, only_unsent=True):
 def send_acceptance_email_task(schueler_id):
     schueler = SchuelerProfile.objects.select_related('user').get(id=schueler_id)
     if not emails.send_single_acceptance_email(schueler):
-        raise EmailVersandFehler(f"Zuteilungsmail an {schueler.user.email} konnte nicht gesendet werden.")
+        raise EmailVersandFehler(f"Zuteilungsmail an {schueler.user.email} wurde nicht als gesendet markiert: Versandfehler "
+                                 "oder während des Versands geänderte Zuteilung (Details im Log).")
 
 
 @task
