@@ -212,7 +212,8 @@ def generate_student_list_pdf(ag, students, title):
 def send_single_acceptance_email(schueler, ag_list=None, connection=None):
     """
     Sends the acceptance email to a single student.
-    Returns True if sent successfully, False otherwise.
+    Returns True if sent successfully, False otherwise. False also covers a mail that went out while the
+    allocation changed: it is then stale and not marked as sent.
     """
     if ag_list is None:
         accepted_anmeldungen = Anmeldung.objects.filter(schueler=schueler, status=Anmeldung.Status.ACCEPTED).select_related('ag')
@@ -239,19 +240,22 @@ def send_single_acceptance_email(schueler, ag_list=None, connection=None):
         _senden(msg)
         # Wurde während des Versands neu ausgelost oder zurückgesetzt, ist die Zusage veraltet. Das Flag bleibt
         # dann False, sonst wären Auslosen und Zurücksetzen für das ganze Halbjahr gesperrt.
-        if _zusagen(schueler) != sorted(ag.id for ag in ag_list):
-            logger.warning("Zuteilung für %s hat sich während des Versands geändert; nicht als gesendet markiert.",
-                           schueler.user.email)
-            return False
-        schueler.acceptance_email_sent = True
-        # Nur das Flag schreiben: Ein Bulk-Lauf hält das Objekt lange, Änderungen der Eltern sollen erhalten bleiben.
-        schueler.save(update_fields=['acceptance_email_sent'])
+        # Prüfen und Markieren unter der Halbjahressperre, sonst kann ein Zurücksetzen dazwischen committen.
+        with transaction.atomic():
+            halbjahr.sperren()
+            if _zugesagte_ag_ids(schueler) != sorted(ag.id for ag in ag_list):
+                logger.warning("Zuteilung für %s hat sich während des Versands geändert; nicht als gesendet markiert.",
+                               schueler.user.email)
+                return False
+            schueler.acceptance_email_sent = True
+            # Nur das Flag schreiben: Ein Bulk-Lauf hält das Objekt lange, Änderungen der Eltern sollen erhalten bleiben.
+            schueler.save(update_fields=['acceptance_email_sent'])
         return True
     except Exception as e:
         logger.error(f"Failed to send acceptance email to {schueler.user.email}: {e}")
         return False
 
-def _zusagen(schueler):
+def _zugesagte_ag_ids(schueler):
     return sorted(Anmeldung.objects.filter(schueler=schueler, status=Anmeldung.Status.ACCEPTED)
                   .values_list('ag_id', flat=True))
 

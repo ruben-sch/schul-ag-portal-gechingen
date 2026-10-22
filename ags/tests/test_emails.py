@@ -513,3 +513,25 @@ class ZuruecksetzenWaehrendVersandTest(TestCase):
         # Keine Zuteilung gilt als verschickt, also lässt sich neu auslosen statt dauerhaft gesperrt zu sein.
         self.assertEqual(SchuelerProfile.objects.filter(acceptance_email_sent=True).count(), 0)
         self.assertEqual(halbjahr.phase().auslosen_gesperrt, "")
+
+    def test_zusage_wird_unter_der_halbjahressperre_geprueft_und_markiert(self):
+        from unittest import mock
+        from ags import emails, halbjahr
+        halbjahr.auslosen()
+        schritte = []
+        echt_sperren, echt_pruefen = halbjahr.sperren, emails._zugesagte_ag_ids
+
+        def sperren():
+            schritte.append('sperren')
+            echt_sperren()
+
+        def pruefen(schueler):
+            schritte.append('pruefen')
+            return echt_pruefen(schueler)
+
+        schueler = SchuelerProfile.objects.first()
+        with mock.patch('ags.halbjahr.sperren', side_effect=sperren), \
+                mock.patch('ags.emails._zugesagte_ag_ids', side_effect=pruefen):
+            self.assertTrue(emails.send_single_acceptance_email(schueler))
+        # Ohne Sperre könnte ein Zurücksetzen zwischen Prüfung und Speichern committen (Postgres READ COMMITTED).
+        self.assertEqual(schritte, ['sperren', 'pruefen'])
