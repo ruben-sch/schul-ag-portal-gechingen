@@ -353,14 +353,14 @@ def send_leader_emails(ag_ids, only_unsent=False, connection=None):
     return sent, failed
 
 
-def send_single_leader_preview_email(ag, connection=None):
+def send_single_leader_preview_email(ag, connection=None, phase=None):
     """
     Sends the preliminary participant list (after the lottery, before notifying students) to the AG leader
     for review. No PDF attachments; corrections come back by reply.
     Returns True if sent successfully, False on error and None if sending is not allowed
-    (before the lottery or after the final list).
+    (before the lottery or after the final list). A bulk run passes its phase snapshot so it is derived once.
     """
-    sperrgrund = halbjahr.phase().vorschau_gesperrt_fuer(ag)
+    sperrgrund = (phase or halbjahr.phase()).vorschau_gesperrt_fuer(ag)
     if sperrgrund:
         logger.info("Vorläufige Liste für %s nicht gesendet: %s", ag.name, sperrgrund)
         return None
@@ -406,7 +406,8 @@ def _listen_stand(ag):
 def send_leader_preview_emails(only_unsent=True):
     """Sends the preliminary list to the leaders of all approved AGs. Returns sent/failed counts."""
     results = {'sent': 0, 'failed': 0}
-    if halbjahr.phase().vorschau_gesperrt:
+    phase = halbjahr.phase()
+    if phase.vorschau_gesperrt:
         return results
     # AGs mit verschickter endgültiger Liste brauchen keine vorläufige mehr.
     ags = AG.objects.filter(status=AG.Status.APPROVED, leader_email_sent=False)
@@ -415,7 +416,7 @@ def send_leader_preview_emails(only_unsent=True):
     connection = get_connection()
     try:
         for ag in ags:
-            ergebnis = send_single_leader_preview_email(ag, connection=connection)
+            ergebnis = send_single_leader_preview_email(ag, connection=connection, phase=phase)
             if ergebnis:
                 results['sent'] += 1
             elif ergebnis is False:
