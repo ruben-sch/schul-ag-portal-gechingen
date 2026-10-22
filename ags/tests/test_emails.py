@@ -224,16 +224,6 @@ class EmailTaskTest(TestCase):
         self.assertEqual(paket.status, TaskResultStatus.FAILED)
         self.assertIn("EmailVersandFehler", einzel.errors[0].exception_class_path)
 
-    def test_admin_action_enqueues_instead_of_sending(self):
-        from unittest import mock
-        from ags import admin as ags_admin
-        modeladmin = mock.MagicMock()
-        mail.outbox = []
-        with mock.patch('ags.admin.send_allocation_emails_task') as task:
-            ags_admin.trigger_emails(modeladmin, mock.MagicMock(), AG.objects.none())
-        task.enqueue.assert_called_once_with(only_unsent=False)
-        self.assertEqual(len(mail.outbox), 0)
-
     def test_enqueue_failure_keeps_registration(self):
         from unittest import mock
         from ags import services
@@ -275,6 +265,16 @@ class LeaderPreviewEmailTest(TestCase):
         self.ag.refresh_from_db()
         self.assertTrue(self.ag.leader_preview_sent)
         self.assertFalse(self.ag.leader_email_sent)
+
+    def test_bulk_preview_leitet_phase_einmal_ab(self):
+        from unittest import mock
+        from ags import halbjahr
+        from ags.emails import send_leader_preview_emails
+        AG.objects.create(name="Tanz AG", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4, status='APPROVED',
+                          verantwortlicher_email='tanz@test.de', verantwortlicher_name='T')
+        with mock.patch('ags.halbjahr.phase', wraps=halbjahr.phase) as phase:
+            self.assertEqual(send_leader_preview_emails(), {'sent': 2, 'failed': 0})
+        self.assertEqual(phase.call_count, 1)
 
     def test_only_unsent_and_reset_by_lottery(self):
         from ags.emails import send_leader_preview_emails
@@ -483,3 +483,55 @@ class TerminReminderTest(TestCase):
         self.client.force_login(admin)
         self.assertEqual(self.client.get(reverse('admin:ags_terminerinnerung_add')).status_code, 403)
         self.assertEqual(self.client.get(reverse('admin:ags_terminerinnerung_changelist')).status_code, 200)
+
+
+class ZuruecksetzenWaehrendVersandTest(TestCase):
+    def setUp(self):
+        ag = AG.objects.create(name="A", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4,
+                               status=AG.Status.APPROVED, verantwortlicher_email='l@t.de', verantwortlicher_name='L')
+        for i in range(2):
+            u = User.objects.create(username=f"e{i}@t.de", email=f"e{i}@t.de")
+            p = SchuelerProfile.objects.create(user=u, name=f"K{i}", klassenstufe=2)
+            Anmeldung.objects.create(schueler=p, ag=ag, prio=1)
+
+    def test_zuruecksetzen_waehrend_zuteilungsmails_sperrt_halbjahr_nicht(self):
+        from unittest import mock
+        from ags import emails, halbjahr
+        halbjahr.auslosen()
+        echt = emails._senden
+        aufrufe = []
+
+        def senden(msg):
+            if not aufrufe:
+                # Ein zweiter Admin setzt die Auslosung zurück, während die erste Zuteilungsmail unterwegs ist.
+                halbjahr.zuruecksetzen()
+            aufrufe.append(msg)
+            return echt(msg)
+
+        with mock.patch('ags.emails._senden', side_effect=senden):
+            emails.send_allocation_emails(only_unsent=True, send_students=True, send_leaders=False)
+        # Keine Zuteilung gilt als verschickt, also lässt sich neu auslosen statt dauerhaft gesperrt zu sein.
+        self.assertEqual(SchuelerProfile.objects.filter(acceptance_email_sent=True).count(), 0)
+        self.assertEqual(halbjahr.phase().auslosen_gesperrt, "")
+
+    def test_zusage_wird_unter_der_halbjahressperre_geprueft_und_markiert(self):
+        from unittest import mock
+        from ags import emails, halbjahr
+        halbjahr.auslosen()
+        schritte = []
+        echt_sperren, echt_pruefen = halbjahr.sperren, emails._zugesagte_ag_ids
+
+        def sperren():
+            schritte.append('sperren')
+            echt_sperren()
+
+        def pruefen(schueler):
+            schritte.append('pruefen')
+            return echt_pruefen(schueler)
+
+        schueler = SchuelerProfile.objects.first()
+        with mock.patch('ags.halbjahr.sperren', side_effect=sperren), \
+                mock.patch('ags.emails._zugesagte_ag_ids', side_effect=pruefen):
+            self.assertTrue(emails.send_single_acceptance_email(schueler))
+        # Ohne Sperre könnte ein Zurücksetzen zwischen Prüfung und Speichern committen (Postgres READ COMMITTED).
+        self.assertEqual(schritte, ['sperren', 'pruefen'])

@@ -15,6 +15,7 @@ from django.utils.html import strip_tags
 from django.conf import settings
 from django.utils import timezone
 from django.db import IntegrityError, transaction
+from . import halbjahr
 from .models import Anmeldung, AG, SchuelerProfile, TerminErinnerung
 from collections import defaultdict
 
@@ -211,7 +212,8 @@ def generate_student_list_pdf(ag, students, title):
 def send_single_acceptance_email(schueler, ag_list=None, connection=None):
     """
     Sends the acceptance email to a single student.
-    Returns True if sent successfully, False otherwise.
+    Returns True if sent successfully, False otherwise. False also covers a mail that went out while the
+    allocation changed: it is then stale and not marked as sent.
     """
     if ag_list is None:
         accepted_anmeldungen = Anmeldung.objects.filter(schueler=schueler, status=Anmeldung.Status.ACCEPTED).select_related('ag')
@@ -236,13 +238,27 @@ def send_single_acceptance_email(schueler, ag_list=None, connection=None):
         )
         msg.attach_alternative(html_message, "text/html")
         _senden(msg)
-        schueler.acceptance_email_sent = True
-        # Nur das Flag schreiben: Ein Bulk-Lauf hält das Objekt lange, Änderungen der Eltern sollen erhalten bleiben.
-        schueler.save(update_fields=['acceptance_email_sent'])
+        # Wurde während des Versands neu ausgelost oder zurückgesetzt, ist die Zusage veraltet. Das Flag bleibt
+        # dann False, sonst wären Auslosen und Zurücksetzen für das ganze Halbjahr gesperrt.
+        # Prüfen und Markieren unter der Halbjahressperre, sonst kann ein Zurücksetzen dazwischen committen.
+        with transaction.atomic():
+            halbjahr.sperren()
+            if _zugesagte_ag_ids(schueler) != sorted(ag.id for ag in ag_list):
+                logger.warning("Zuteilung für %s hat sich während des Versands geändert; nicht als gesendet markiert.",
+                               schueler.user.email)
+                return False
+            schueler.acceptance_email_sent = True
+            # Nur das Flag schreiben: Ein Bulk-Lauf hält das Objekt lange, Änderungen der Eltern sollen erhalten bleiben.
+            schueler.save(update_fields=['acceptance_email_sent'])
         return True
     except Exception as e:
         logger.error(f"Failed to send acceptance email to {schueler.user.email}: {e}")
         return False
+
+def _zugesagte_ag_ids(schueler):
+    return sorted(Anmeldung.objects.filter(schueler=schueler, status=Anmeldung.Status.ACCEPTED)
+                  .values_list('ag_id', flat=True))
+
 
 def send_single_leader_email(ag, connection=None):
     """
@@ -352,15 +368,14 @@ def send_leader_emails(ag_ids, only_unsent=False, connection=None):
     return sent, failed
 
 
-def send_single_leader_preview_email(ag, connection=None):
+def send_single_leader_preview_email(ag, connection=None, phase=None):
     """
     Sends the preliminary participant list (after the lottery, before notifying students) to the AG leader
     for review. No PDF attachments; corrections come back by reply.
     Returns True if sent successfully, False on error and None if sending is not allowed
-    (before the lottery or after the final list).
+    (before the lottery or after the final list). A bulk run passes its phase snapshot so it is derived once.
     """
-    from .services import leader_preview_blocked_reason
-    sperrgrund = leader_preview_blocked_reason(ag)
+    sperrgrund = (phase or halbjahr.phase()).vorschau_gesperrt_fuer(ag)
     if sperrgrund:
         logger.info("Vorläufige Liste für %s nicht gesendet: %s", ag.name, sperrgrund)
         return None
@@ -405,9 +420,9 @@ def _listen_stand(ag):
 
 def send_leader_preview_emails(only_unsent=True):
     """Sends the preliminary list to the leaders of all approved AGs. Returns sent/failed counts."""
-    from .services import leader_preview_blocked_reason
     results = {'sent': 0, 'failed': 0}
-    if leader_preview_blocked_reason():
+    phase = halbjahr.phase()
+    if phase.vorschau_gesperrt:
         return results
     # AGs mit verschickter endgültiger Liste brauchen keine vorläufige mehr.
     ags = AG.objects.filter(status=AG.Status.APPROVED, leader_email_sent=False)
@@ -416,7 +431,7 @@ def send_leader_preview_emails(only_unsent=True):
     connection = get_connection()
     try:
         for ag in ags:
-            ergebnis = send_single_leader_preview_email(ag, connection=connection)
+            ergebnis = send_single_leader_preview_email(ag, connection=connection, phase=phase)
             if ergebnis:
                 results['sent'] += 1
             elif ergebnis is False:

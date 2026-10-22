@@ -20,6 +20,7 @@ urlpatterns = [
     path('run-lottery-internal/', views.run_lottery_view, name='run_lottery_internal'),
     path('workflow/toggle/', views.workflow_toggle, name='workflow_toggle'),
     path('workflow/next-semester/', views.workflow_next_semester, name='workflow_next_semester'),
+    path('workflow/reset/', views.workflow_reset, name='workflow_reset'),
     path('test-email/', views.test_email, name='test_email'),
     path('impressum/', views.impressum, name='impressum'),
 ]

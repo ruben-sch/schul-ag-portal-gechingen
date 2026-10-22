@@ -1,4 +1,4 @@
-from django.contrib import admin, messages
+from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from .models import AG, SchuelerProfile, Anmeldung, AppConfig, ArchivEintrag, TerminErinnerung
 
@@ -12,46 +12,17 @@ class ArchivEintragAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         return False # Nur via System-Reset
 from . import services
-from .utils import run_lottery, reset_lottery
-from .tasks import send_allocation_emails_task
 
 @admin.action(description='Ausgewählte AGs genehmigen')
 def make_approved(modeladmin, request, queryset):
     queryset.update(status=AG.Status.APPROVED)
 
-@admin.action(description='Losverfahren starten')
-def trigger_lottery(modeladmin, request, queryset):
-    from .services import lottery_blocked_reason
-    blocked = lottery_blocked_reason()
-    if blocked:
-        modeladmin.message_user(request, blocked, level=messages.ERROR)
-        return
-    run_lottery()
-    modeladmin.message_user(request, "Losverfahren wurde ausgeführt.")
-
-@admin.action(description='Zuteilungen zurücksetzen (Undo)')
-def undo_lottery(modeladmin, request, queryset):
-    reset_lottery()
-    modeladmin.message_user(request, "Zuteilungen wurden zurückgesetzt.")
-
-from django.core.management import call_command
-
-@admin.action(description='System für neues Halbjahr zurücksetzen (Archiviert alte Daten)')
-def start_next_semester(modeladmin, request, queryset):
-    call_command('next_semester')
-    modeladmin.message_user(request, "Das System wurde archiviert und für das neue Halbjahr zurückgesetzt.")
-
-@admin.action(description='Ergebnisse per E-Mail versenden')
-def trigger_emails(modeladmin, request, queryset):
-    # Im Hintergrund, sonst läuft der Request bei vielen Mails in den Gunicorn-Timeout.
-    send_allocation_emails_task.enqueue(only_unsent=False)
-    modeladmin.message_user(request, "Der Versand aller Benachrichtigungen läuft im Hintergrund.")
-
 @admin.register(AG)
 class AGAdmin(admin.ModelAdmin):
     list_display = ('name', 'verantwortlicher_name', 'get_termine_display', 'klassenstufe_min', 'klassenstufe_max', 'status', 'kapazitaet', 'leader_magic_link')
     list_filter = ('status', 'klassenstufe_min', 'klassenstufe_max')
-    actions = [make_approved, trigger_lottery, undo_lottery, trigger_emails]
+    # Auslosen, Zurücksetzen und Versand laufen über den Workflow-Tab, damit dessen Sperren gelten.
+    actions = [make_approved]
     search_fields = ('name', 'verantwortlicher_name', 'verantwortlicher_email')
 
     def leader_magic_link(self, obj):
@@ -92,7 +63,6 @@ class AnmeldungAdmin(admin.ModelAdmin):
 @admin.register(AppConfig)
 class AppConfigAdmin(admin.ModelAdmin):
     list_display = ('__str__', 'anmeldung_offen')
-    actions = [start_next_semester]
     
     def has_add_permission(self, request):
         # Only one config allowed

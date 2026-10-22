@@ -21,6 +21,7 @@ Der Tab ist in vier Phasen gegliedert, die du von oben nach unten abarbeitest.
 - **Bearbeiten** (Stift-Symbol): Alle Angaben inkl. Termine und Status ändern. Mit Status „Genehmigt“ erscheint die AG bei der Anmeldung.
 - **Duplizieren** (Kopieren-Symbol): Legt eine Kopie ohne Termine an (Status „Eingereicht“) und öffnet sie direkt zum Eintragen der neuen Termine. Praktisch, wenn dieselbe AG zu einem zweiten Termin angeboten wird.
 - Mehrere AGs auf einmal genehmigen geht weiterhin im Django-Admin (Aktion „Ausgewählte AGs genehmigen“).
+  Auslosen, Zurücksetzen, Mailversand und Halbjahreswechsel gibt es nur im Workflow-Tab, damit dessen Sperren immer gelten.
 - Sind alle AGs geprüft: **AG-Registrierung schließen** (Schalter in Phase 1) und **Anmeldung für Schüler öffnen** (Schalter in Phase 3).
 
 ## Phase 3: Anmeldung, Auslosung und Review
@@ -30,6 +31,8 @@ Der Tab ist in vier Phasen gegliedert, die du von oben nach unten abarbeitest.
 2. **Anmeldung schließen.** Die Auslosung ist gesperrt, solange die Anmeldung offen ist.
 3. **Auslosung starten.** Eine erneute Auslosung überschreibt alle bisherigen Zuteilungen. Sobald die endgültigen Mails
    aus Phase 4 verschickt sind, ist die Auslosung gesperrt; danach nur noch über die manuelle Korrektur ändern.
+   **Auslosung zurücksetzen** stellt alle Anmeldungen wieder auf „Wartend“ (z.B. wenn die Anmeldung noch einmal
+   geöffnet werden soll). Es gilt dieselbe Sperre: nicht bei offener Anmeldung und nicht nach den endgültigen Mails.
 4. **Vorläufige Listen an AG-Leiter:** Jede AG-Leitung bekommt ihre AG-Daten und die vorläufige Teilnehmer- und Warteliste
    zur Prüfung (ohne PDFs). Das geht erst nach der Auslosung und nicht mehr für AGs, deren endgültige Liste schon
    verschickt ist. Korrekturen kommen per Antwort-Mail zurück. Der Zähler zeigt, wie viele Listen verschickt sind;

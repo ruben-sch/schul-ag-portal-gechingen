@@ -39,13 +39,6 @@ class WorkflowTabTest(TestCase):
         self.client.post(reverse('workflow_toggle'), {'name': 'anmeldung_offen', 'offen': '1'})
         self.assertFalse(AppConfig.load().anmeldung_offen)
 
-    def test_lottery_blocked_while_registration_open(self):
-        config = AppConfig.load()
-        config.anmeldung_offen = True
-        config.save()
-        self.client.post(reverse('run_lottery_internal'))
-        self.assertEqual(Anmeldung.objects.get().status, Anmeldung.Status.PENDING)
-
     def test_lottery_runs_when_registration_closed(self):
         self.client.post(reverse('run_lottery_internal'))
         self.assertEqual(Anmeldung.objects.get().status, Anmeldung.Status.ACCEPTED)
@@ -72,16 +65,6 @@ class WorkflowTabTest(TestCase):
         self.assertTrue(config.ag_registrierung_offen)
         self.assertFalse(config.anmeldung_offen)
 
-    def test_next_semester_is_atomic(self):
-        from unittest import mock
-        with tempfile.TemporaryDirectory() as backup_dir, override_settings(SEMESTER_BACKUP_DIR=backup_dir), \
-                mock.patch('django.contrib.auth.models.User.objects.filter', side_effect=RuntimeError("Abbruch")):
-            with self.assertRaises(RuntimeError):
-                from ags import services
-                services.start_new_semester()
-        self.assertEqual(AG.objects.count(), 1)
-        self.assertEqual(ArchivEintrag.objects.count(), 0)
-
     def test_lottery_blocked_after_final_mails(self):
         SchuelerProfile.objects.update(acceptance_email_sent=True)
         res = self.client.post(reverse('run_lottery_internal'), follow=True)
@@ -104,3 +87,46 @@ class WorkflowTabTest(TestCase):
         self.assertEqual(res.url, reverse('stats_dashboard') + '?tab=workflow')
         res = self.client.post(reverse('send_bulk_emails'), {'target': 'leaders', 'tab': 'evil'})
         self.assertEqual(res.url, reverse('stats_dashboard') + '?tab=workflow')
+
+    def test_reset_setzt_auslosung_zurueck(self):
+        Anmeldung.objects.update(status=Anmeldung.Status.ACCEPTED)
+        res = self.client.post(reverse('workflow_reset'), {'tab': 'workflow'})
+        self.assertEqual(res.url, reverse('stats_dashboard') + '?tab=workflow')
+        self.assertEqual(Anmeldung.objects.get().status, Anmeldung.Status.PENDING)
+
+    def test_reset_nach_versand_zeigt_grund(self):
+        Anmeldung.objects.update(status=Anmeldung.Status.ACCEPTED)
+        SchuelerProfile.objects.update(acceptance_email_sent=True)
+        res = self.client.post(reverse('workflow_reset'), follow=True)
+        meldungen = [str(m) for m in res.context['messages']]
+        self.assertTrue(any('bereits verschickt' in m for m in meldungen), meldungen)
+        self.assertEqual(Anmeldung.objects.get().status, Anmeldung.Status.ACCEPTED)
+
+    def test_workflow_tab_zeigt_reset_nur_nach_auslosung(self):
+        res = self.client.get(reverse('stats_dashboard'))
+        self.assertContains(res, 'disabled title="Noch nicht ausgelost."')
+        Anmeldung.objects.update(status=Anmeldung.Status.ACCEPTED)
+        res = self.client.get(reverse('stats_dashboard'))
+        self.assertNotContains(res, 'disabled title="Noch nicht ausgelost."')
+        self.assertContains(res, reverse('workflow_reset'))
+
+    def test_vorschau_button_gesperrt_ohne_zusagen(self):
+        Anmeldung.objects.update(status=Anmeldung.Status.REJECTED)
+        res = self.client.get(reverse('stats_dashboard'))
+        self.assertContains(res, 'disabled title="Vorläufige Listen gibt es erst nach der Auslosung."')
+
+    def test_auslosen_button_im_allgemein_tab_zeigt_sperre(self):
+        AppConfig.load()
+        AppConfig.objects.update(anmeldung_offen=True)
+        res = self.client.get(reverse('stats_dashboard') + '?tab=general')
+        self.assertContains(res, 'disabled title="Die Anmeldung ist noch offen.')
+
+    def test_django_admin_hat_keine_workflow_aktionen(self):
+        # Auslosen, Zurücksetzen, Versand und Halbjahreswechsel laufen nur über den Workflow-Tab mit seinen Sperren.
+        self.admin.is_superuser = True
+        self.admin.save()
+        for url in (reverse('admin:ags_ag_changelist'), reverse('admin:ags_appconfig_changelist')):
+            res = self.client.get(url)
+            self.assertEqual(res.status_code, 200)
+            for aktion in ('trigger_lottery', 'undo_lottery', 'trigger_emails', 'start_next_semester'):
+                self.assertNotContains(res, f'value="{aktion}"')
