@@ -41,6 +41,12 @@ class HalbjahrTest(TestCase):
         SchuelerProfile.objects.update(acceptance_email_sent=True)
         self.assertIn("bereits verschickt", halbjahr.phase().zuruecksetzen_gesperrt)
 
+    def test_zuruecksetzen_gesperrt_solange_anmeldung_offen(self):
+        Anmeldung.objects.update(status=Anmeldung.Status.ACCEPTED)
+        AppConfig.load()
+        AppConfig.objects.update(anmeldung_offen=True)
+        self.assertIn("Anmeldung ist noch offen", halbjahr.phase().zuruecksetzen_gesperrt)
+
     def test_zuruecksetzen_erlaubt_nach_auslosung(self):
         Anmeldung.objects.update(status=Anmeldung.Status.REJECTED)
         phase = halbjahr.phase()
