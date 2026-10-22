@@ -27,7 +27,8 @@ def _pakete(ids):
 
 def _pruefen(art, sent, failed):
     if failed:
-        raise EmailVersandFehler(f"{failed} von {sent + failed} {art} konnten nicht gesendet werden (Details im Log).")
+        raise EmailVersandFehler(f"{failed} von {sent + failed} {art} wurden nicht als gesendet markiert: Versandfehler "
+                                 "oder während des Versands geänderte Zuteilung (Details im Log).")
     return {'sent': sent, 'failed': failed}
 
 
