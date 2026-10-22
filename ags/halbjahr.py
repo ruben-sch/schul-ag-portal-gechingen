@@ -4,6 +4,7 @@ Halbjahres-Workflow: welche Aktion im aktuellen Stand des Halbjahres erlaubt ist
 Die Phase wird bei jedem Aufruf aus den vorhandenen Feldern abgeleitet und nicht gespeichert.
 """
 import io
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from django.core.management import call_command
@@ -34,7 +35,7 @@ class Phase:
     zuruecksetzen_gesperrt: str
     vorschau_gesperrt: str
 
-    def vorschau_gesperrt_fuer(self, ag):
+    def vorschau_gesperrt_fuer(self, ag: AG) -> str:
         """Wie vorschau_gesperrt, zusätzlich gesperrt, wenn diese AG ihre endgültige Liste schon hat."""
         if self.vorschau_gesperrt:
             return self.vorschau_gesperrt
@@ -43,7 +44,7 @@ class Phase:
         return ""
 
 
-def phase():
+def phase() -> Phase:
     ausgelost = Anmeldung.objects.exclude(status=Anmeldung.Status.PENDING).exists()
     # Vorläufige Listen nur, wenn alle Anmeldungen ausgelost sind und es überhaupt Zusagen gibt.
     listen_stehen = (not Anmeldung.objects.filter(status=Anmeldung.Status.PENDING).exists()
@@ -63,34 +64,34 @@ def phase():
     )
 
 
-def _sperren():
+def _sperren() -> None:
     """Sperrt die Konfigurationszeile bis zum Ende der Transaktion: gleichzeitige Aktionen laufen nacheinander."""
     AppConfig.load()
     AppConfig.objects.select_for_update().get(pk=1)
 
 
-def _ausfuehren(sperrgrund, aktion):
-    """Führt eine Aktion unter der Sperre aus, wenn sie im aktuellen Stand erlaubt ist, sonst Gesperrt."""
+def _ausfuehren(aktion: Callable[[], None], sperrgrund: Callable[[Phase], str] | None = None) -> None:
+    """Führt eine Aktion unter der Sperre aus; mit sperrgrund nur, wenn sie im aktuellen Stand erlaubt ist, sonst Gesperrt."""
     with transaction.atomic():
         _sperren()
         # Unter der Sperre neu prüfen: Die Phase, die die Seite angezeigt hat, kann veraltet sein.
-        if grund := sperrgrund(phase()):
+        if sperrgrund and (grund := sperrgrund(phase())):
             raise Gesperrt(grund)
         aktion()
 
 
-def auslosen():
-    _ausfuehren(lambda p: p.auslosen_gesperrt, utils.run_lottery)
+def auslosen() -> None:
+    _ausfuehren(utils.run_lottery, lambda p: p.auslosen_gesperrt)
 
 
-def zuruecksetzen():
-    _ausfuehren(lambda p: p.zuruecksetzen_gesperrt, utils.reset_lottery)
+def zuruecksetzen() -> None:
+    _ausfuehren(utils.reset_lottery, lambda p: p.zuruecksetzen_gesperrt)
 
 
-def neues_halbjahr(bestaetigung):
+def neues_halbjahr(bestaetigung: str) -> None:
     if bestaetigung != BESTAETIGUNG:
         raise Gesperrt(f"Bitte zur Bestätigung {BESTAETIGUNG} eingeben.")
     # Eine Transaktion: Bricht der Lauf ab, bleibt kein halb gelöschter Zustand. Die Sperre serialisiert
     # Doppelklicks; der zweite Lauf findet dann nichts mehr zum Archivieren. Die Ausgabe des Commands
     # (inkl. JSON-Dump mit personenbezogenen Daten) landet bewusst nicht im Log.
-    _ausfuehren(lambda p: "", lambda: call_command('next_semester', stdout=io.StringIO()))
+    _ausfuehren(lambda: call_command('next_semester', stdout=io.StringIO()))
