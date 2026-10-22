@@ -266,6 +266,16 @@ class LeaderPreviewEmailTest(TestCase):
         self.assertTrue(self.ag.leader_preview_sent)
         self.assertFalse(self.ag.leader_email_sent)
 
+    def test_bulk_preview_leitet_phase_einmal_ab(self):
+        from unittest import mock
+        from ags import halbjahr
+        from ags.emails import send_leader_preview_emails
+        AG.objects.create(name="Tanz AG", kapazitaet=5, klassenstufe_min=1, klassenstufe_max=4, status='APPROVED',
+                          verantwortlicher_email='tanz@test.de', verantwortlicher_name='T')
+        with mock.patch('ags.halbjahr.phase', wraps=halbjahr.phase) as phase:
+            self.assertEqual(send_leader_preview_emails(), {'sent': 2, 'failed': 0})
+        self.assertEqual(phase.call_count, 1)
+
     def test_only_unsent_and_reset_by_lottery(self):
         from ags.emails import send_leader_preview_emails
         from ags.utils import run_lottery
