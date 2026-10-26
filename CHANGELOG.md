@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.10.0](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.9.0...v0.10.0) (2026-10-26)
+
+
+### Features
+
+* **admin:** Workflow-Aktionen aus dem Django-Admin entfernen ([3972c9c](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/3972c9c2341445a2ceb8953dcb3933411e854fdc))
+* **workflow:** Auslosung im Workflow-Tab zurücksetzen ([ac0cb85](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/ac0cb856d2d3d352455f7076ea0a277aab3eec95))
+* **workflow:** Halbjahres-Workflow-Modul mit Phase und geschützten Aktionen ([03a3b7a](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/03a3b7a92488fc7024cbd2980f6aafec77a48509))
+
+
+### Bug Fixes
+
+* **emails:** veraltete Zuteilungsmail nicht als gesendet markieren ([5402ac7](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/5402ac7827f6e73c0867416fb7c84c1591f7c7c8))
+* **emails:** Zusage unter der Halbjahressperre prüfen und markieren ([146f85d](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/146f85dd6d4ddae82a6b7b8b99793487d75bb095))
+* **tasks:** Fehlermeldung nennt auch veraltete Zuteilungen ([1291796](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/1291796cb89d5b2948c5aa32855d41ea18d096e7))
+
+
+### Performance Improvements
+
+* **emails:** Bulk-Versand der vorläufigen Listen leitet die Phase einmal ab ([758a770](https://github.com/ruben-sch/schul-ag-portal-gechingen/commit/758a770328fbe70b48efa11a2061d0e4db0d7693))
+
 ## [0.9.0](https://github.com/ruben-sch/schul-ag-portal-gechingen/compare/v0.8.0...v0.9.0) (2026-10-21)
 
 
